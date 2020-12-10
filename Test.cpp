@@ -5,6 +5,45 @@
 #include <fstream>
 
 
+enum Block {TOP,MIDDLE,BOTTOM};
+
+
+// w = width
+// h = height
+// d = depth
+
+bool doesIntersect(int x0, int y0, int z0, int w0, int h0, int d0, // Block
+			    int x1, int y1, int z1, int w1, int h1, int d1) // Test Boundary
+{
+	// Calculate Halves
+	int hw0 = w0 >> 1;
+	int hh0 = h0 >> 1;
+	int hd0 = d0 >> 1;
+
+	int hw1 = w1 >> 1;
+	int hh1 = h1 >> 1;
+	int hd1 = d1 >> 1;
+
+	// Calculate Middle of Block
+	int mx = x0 + hw0;
+	int my = y1 + hh0;
+	int mz = z0 + hd0;
+
+	// Calculate Middle of Boundary
+	int bx = x1 + hw1;
+	int by = y1 + hh1;
+	int bz = z1 + hd1;
+
+	// Intersection test
+	// Calculate Deltas
+	int dx = abs(mx - bx);
+	int dy = abs(my - by);
+	int dz = abs(mz - bz);
+
+	return dx > hw0 + hw1 && dy > hh0 + hh1 && dz > hd0 + hd0;
+}
+
+
 inline void checkErr(cl_int err, const char* name)
 {
 	if (err != CL_SUCCESS)
@@ -44,6 +83,8 @@ std::vector<int> chunkWork(cl::Context context, cl::Program program, cl::Device 
 	return *vec;
 }
 
+
+
 int main()
 {
 	// create platform to accommodate for devices
@@ -81,6 +122,44 @@ int main()
 		std::cout << "Build log: (clipped to 1024 chars, actual size: " << actualLogSize << ")" << std::endl << std::endl;
 		std::cout << buildLog << std::endl;
 	}
+
+	// make 3D array
+	const unsigned int array_width = 60;
+	const unsigned int array_height = 60;
+	const unsigned int array_depth = 30;
+	const unsigned int array_size = array_width * array_depth * array_height;
+	int* array_3d = new int[array_size]; // feeling cute, might delete later
+
+	// initialise 3d array
+	memset(array_3d, 1,array_size);
+
+	// define boundary sizes in this test, all have same boundary size
+	const unsigned int boundary_width = array_width;
+	const unsigned int boundary_height = array_height / 3;
+	const unsigned int boundary_depth = array_depth;
+
+	// define boundaries
+	const unsigned int TOP_x = 0;
+	const unsigned int TOP_y = 0;
+	const unsigned int TOP_z = 0;
+
+	const unsigned int MID_x = 0;
+	const unsigned int MID_y = TOP_y + boundary_height;
+	const unsigned int MID_z = 0;
+
+	const unsigned int BOT_x = 0;
+	const unsigned int BOT_y = MID_y + boundary_height;
+	const unsigned int BOT_z = 0;
+
+	// function to tell us where the blocks belong
+	for (int i = 0; i < array_size; i++)
+	{
+
+		// array_3d[i] 
+	}
+	// cl_code for each block
+	// read back data
+	
 
 	std::vector<int> vec(1024);
 	int chunkSize = 256;
