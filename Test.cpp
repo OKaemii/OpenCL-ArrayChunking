@@ -3,46 +3,54 @@
 #include<CL/cl.hpp>
 #include <iostream>
 #include <fstream>
+#include <string>
 
-
+typedef const unsigned int cuint;
 enum Block {TOP,MIDDLE,BOTTOM};
+
+cuint _WIDTH = 30;
+cuint _HEIGHT = 30;
+cuint _DEPTH = 30;
 
 
 // w = width
 // h = height
 // d = depth
 
-bool doesIntersect(int x0, int y0, int z0, int w0, int h0, int d0, // Block
-			    int x1, int y1, int z1, int w1, int h1, int d1) // Test Boundary
+bool doesIntersect(int aMinX, int aMinY, int aMinZ, int aMaxX, int aMaxY, int aMaxZ, // Block
+			       int bMinX, int bMinY, int bMinZ, int bMaxX, int bMaxY, int bMaxZ) // Test Boundary
 {
-	// Calculate Halves
-	int hw0 = w0 >> 1;
-	int hh0 = h0 >> 1;
-	int hd0 = d0 >> 1;
-
-	int hw1 = w1 >> 1;
-	int hh1 = h1 >> 1;
-	int hd1 = d1 >> 1;
-
-	// Calculate Middle of Block
-	int mx = x0 + hw0;
-	int my = y1 + hh0;
-	int mz = z0 + hd0;
-
-	// Calculate Middle of Boundary
-	int bx = x1 + hw1;
-	int by = y1 + hh1;
-	int bz = z1 + hd1;
-
-	// Intersection test
-	// Calculate Deltas
-	int dx = abs(mx - bx);
-	int dy = abs(my - by);
-	int dz = abs(mz - bz);
-
-	return dx > hw0 + hw1 && dy > hh0 + hh1 && dz > hd0 + hd0;
+	return (aMinX <= bMaxX && aMaxX >= bMinX) &&
+		   (aMinY <= bMaxY && aMaxY >= bMinY) &&
+		   (aMinZ <= bMaxZ && aMaxZ >= bMinZ);
 }
 
+bool isTop(int x0, int y0, int z0, int w0, int h0, int d0)
+{
+	cuint x = 0;
+	cuint y = _HEIGHT;
+	cuint z = 0;
+
+	return doesIntersect(x, y,z,_WIDTH, y - _HEIGHT * 1 / 3,_DEPTH,x0,y0,z0,w0,h0,d0);
+}
+
+bool isMid(int x0, int y0, int z0, int w0, int h0, int d0)
+{
+	cuint x = 0;
+	cuint y = _HEIGHT * 2 / 3;
+	cuint z = 0;
+
+	return doesIntersect(x, y, z, _WIDTH, y - _HEIGHT * 1 / 3, _DEPTH, x0, y0, z0, w0, h0, d0);
+}
+
+bool isBot(int x0, int y0, int z0, int w0, int h0, int d0)
+{
+	cuint x = 0;
+	cuint y = _HEIGHT * 1 / 3;
+	cuint z = 0;
+
+	return doesIntersect(x, y, z, _WIDTH, y - _HEIGHT * 1 / 3, _DEPTH, x0, y0, z0, w0, h0, d0);
+}
 
 inline void checkErr(cl_int err, const char* name)
 {
@@ -54,7 +62,7 @@ inline void checkErr(cl_int err, const char* name)
 }
 
 
-std::vector<int> chunkWork(cl::Context context, cl::Program program, cl::Device device, std::vector<int> * vec, int chunkSize, int err = 0)
+std::vector<int> chunkWork1D(cl::Context context, cl::Program program, cl::Device device, std::vector<int> * vec, int chunkSize, int err = 0)
 {
 	// initial point to start of our vector
 	for (int * pVec = vec->data(); *pVec < vec->size(); pVec += chunkSize)
@@ -83,6 +91,85 @@ std::vector<int> chunkWork(cl::Context context, cl::Program program, cl::Device 
 	return *vec;
 }
 
+std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Device device, std::vector<int> * vec, cuint a_size,
+	cuint chunk_x, cuint chunk_y, cuint chunk_z, int err = 0)
+{
+	char calcToPerform[] = "calcNon";
+	int chunkSize = chunk_x * chunk_y * chunk_z;
+	int x = 0;
+	int y = 0;
+	int z = 0;
+
+	// initial point to start of our vector
+	for (int* pVec = vec->data(); *pVec < vec->size(); pVec += chunkSize)
+	{
+		// create buffers, and kernel
+		cl::Buffer inBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, sizeof(int) * chunkSize, pVec);
+		cl::Buffer outBuf(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, sizeof(int) * chunkSize, nullptr);
+
+		if (isTop(x,y,z, x+chunk_x,y+chunk_y,z+chunk_z))
+		{
+			printf("TOP: %d %d %d\n", x, y, z);
+			strcpy_s(calcToPerform, "calcTop");
+		}
+		if (isMid(x, y, z, x+chunk_x, y+chunk_y, z+chunk_z))
+		{
+			printf("MID: %d %d %d\n", x, y, z);
+			strcpy_s(calcToPerform, "calcMid");
+		}
+		if (isBot(x, y, z, x+chunk_x, y+chunk_y, z+chunk_z))
+		{
+			printf("BOT: %d %d %d\n", x, y, z);
+			strcpy_s(calcToPerform, "calcBot");
+		}
+
+		// TODO: overlap check
+		// Friday: unit testing
+		// no need to consider Z direction
+		// TODO: create a sub array for fortran convention on host
+		// TODO: coordinate check on the kernel side
+		// TODO: super-kernel case for every other kernel, but they are subroutines for other kernels
+		// TODO: consider three possible ways of chunking, chunk x, y or z dimension (chunk 1,2 or 3 dimensions)
+
+		if (x >= _WIDTH)
+		{
+			x = 0;
+			z += chunk_z;
+		}
+
+		if (z >= _DEPTH)
+		{
+			z = 0;
+			y += chunk_y;
+		}
+
+		if (y >= _HEIGHT)
+		{
+			y = 0;
+		}
+
+		x += chunk_x;
+
+		cl::Kernel kernel(program, calcToPerform, &err);
+		checkErr(err, "kernelling...");
+
+		// fill in args of the user made kernel func in .cl
+		kernel.setArg(0, inBuf);
+		kernel.setArg(1, outBuf);
+
+		cl::CommandQueue queue(context, device);
+
+		// sets up where we to read the finished GPU data
+		err = queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(chunkSize));
+		checkErr(err, "ND Range kernel execution");
+
+		// reads from GPU data from where it was set to based on NDRangeK
+		err = queue.enqueueReadBuffer(outBuf, CL_FALSE, 0, sizeof(int) * chunkSize, pVec); // get data from device, and work on buffer
+		checkErr(err, "Reading buffer...");
+	}
+
+	return *vec;
+}
 
 
 int main()
@@ -124,55 +211,34 @@ int main()
 	}
 
 	// make 3D array
-	const unsigned int array_width = 60;
-	const unsigned int array_height = 60;
-	const unsigned int array_depth = 30;
-	const unsigned int array_size = array_width * array_depth * array_height;
-	int* array_3d = new int[array_size]; // feeling cute, might delete later
+	cuint array_width = _WIDTH;
+	cuint array_height = _HEIGHT;
+	cuint array_depth = _DEPTH;
+	cuint array_size = array_width * array_depth * array_height;
+	// int* array_3d = new int[array_size]; // feeling cute, might delete later
 
 	// initialise 3d array
-	memset(array_3d, 1,array_size);
+	// memset(array_3d, 1,array_size);
 
-	// define boundary sizes in this test, all have same boundary size
-	const unsigned int boundary_width = array_width;
-	const unsigned int boundary_height = array_height / 3;
-	const unsigned int boundary_depth = array_depth;
-
-	// define boundaries
-	const unsigned int TOP_x = 0;
-	const unsigned int TOP_y = 0;
-	const unsigned int TOP_z = 0;
-
-	const unsigned int MID_x = 0;
-	const unsigned int MID_y = TOP_y + boundary_height;
-	const unsigned int MID_z = 0;
-
-	const unsigned int BOT_x = 0;
-	const unsigned int BOT_y = MID_y + boundary_height;
-	const unsigned int BOT_z = 0;
-
-	// function to tell us where the blocks belong
-	for (int i = 0; i < array_size; i++)
-	{
-
-		// array_3d[i] 
-	}
-	// cl_code for each block
-	// read back data
-	
-
-	std::vector<int> vec(1024);
-	int chunkSize = 256;
+	std::vector<int> vec(array_size);
 	std::fill(vec.begin(), vec.end(), 1);
+	
+	// 3D chunky boii
+	cuint chunkSize_width = 10;
+	cuint chunkSize_height = 10;
+	cuint chunkSize_depth = 10;
+	cuint chunkSize = chunkSize_width * chunkSize_height * chunkSize_depth;
 
 	// perform chunking function
-	vec = chunkWork(context, program, device, &vec, chunkSize, err);
+	vec = chunkWork3D(context, program, device, &vec, array_size, chunkSize_width, chunkSize_height, chunkSize_depth, err);
 
-	// output array
+	// TODO: Unit Tests
+	
 	for (auto &i:vec)
 	{
 		printf("%d", i);
 	}
+
 	printf("\n");
 	cl::finish();
 }
