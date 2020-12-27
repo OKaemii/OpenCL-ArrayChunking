@@ -91,7 +91,7 @@ std::vector<int> chunkWork1D(cl::Context context, cl::Program program, cl::Devic
 	return *vec;
 }
 
-std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Device device, std::vector<int> * vec, cuint a_size,
+std::vector<int> chunkWork3D_old(cl::Context context, cl::Program program, cl::Device device, std::vector<int> * vec, cuint a_size,
 	cuint chunk_x, cuint chunk_y, cuint chunk_z, int err = 0)
 {
 	char calcToPerform[] = "calcNon";
@@ -171,7 +171,91 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 	return *vec;
 }
 
+std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Device device, std::vector<int>* vec, cuint halo,
+	cuint chunk_x, cuint chunk_y, cuint chunk_z, int err = 0)
+{
+	int chunkSize = (chunk_x + halo) * (chunk_y + halo) * (chunk_z + halo);
 
+
+	// create buffers, and kernel
+	cl::Buffer inBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, sizeof(int) * chunkSize, vec);
+	cl::Buffer outBuf(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, sizeof(int) * chunkSize, nullptr);
+
+	cl::Kernel kernel(program, "calcToPerform", &err);
+	checkErr(err, "kernelling...");
+
+	// fill in args of the user made kernel func in .cl
+	kernel.setArg(0, inBuf);
+	kernel.setArg(1, outBuf);
+
+	cl::CommandQueue queue(context, device);
+
+	// sets up where we to read the finished GPU data
+	err = queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(chunkSize));
+	checkErr(err, "ND Range kernel execution");
+
+	// reads from GPU data from where it was set to based on NDRangeK
+	err = queue.enqueueReadBuffer(outBuf, CL_FALSE, 0, sizeof(int) * chunkSize, vec); // get data from device, and work on buffer
+	checkErr(err, "Reading buffer...");
+}
+
+std::vector<int> vecToFortran3D(std::vector<int>* vec, cuint halo,cuint x0, cuint x1, cuint y0, cuint y1, cuint z0, cuint z1)
+{
+	// take only what we need from our vector
+	// C is row-major order
+	// convert array to column order
+	cuint arr_size = ((x1-x0) + halo) * ((y1-y0) + halo) * ((z1-z0));
+	std::vector<int> dump(arr_size);
+
+	cuint x_begin = x0 - halo > 0 ? x0 - halo : 0;
+	cuint x_end = x1 + halo < _WIDTH ? x1 + halo : _WIDTH;
+
+	cuint y_begin = y0 - halo > 0 ? y0 - halo : 0;
+	cuint y_end = y1 + halo < _HEIGHT ? y1 + halo : _HEIGHT;
+
+	cuint z_begin = z0 > 0 ? z0 - halo : 0;
+	cuint z_end = z1 < _DEPTH ? z1 : _DEPTH;
+
+	// e.g. 3D array:
+	/*
+	* |1 2 3 4|, |11 12 13 14|
+	* |5 6 7 8|  |15 16 17 18|
+	*/
+
+	// F: '1  11  2  12  3  13  4  14  5  15  6  16  7  17  8  18'
+	// C: '1  5  2  6  3  7  4  8  11  15  12  16  13  17  14  18'
+
+	/*
+	*	// row major order
+		index = ((x * max_y + y) * max_z) + z;
+		// column major order
+		index = ((z * max_y + y) * max_x) + x;
+
+		// for row major order
+		z = index % max_z;
+		y = (index / max_z) % max_y;
+		x = index / (max_z * max_y);
+
+		// for column major order
+		x = index % max_x;
+		y = (index / max_x) % max_y;
+		z = index / (max_x * max_y);
+	*/
+	int i = 0;
+	for (int y = y_begin; y < y_end; y++)
+	{
+		for (int x = x_begin; x < x_end; x++)
+		{
+			for (int z = z_begin; z < z_end; z++)
+			{
+				dump[i] = vec->data()[((z * _HEIGHT + y) * _WIDTH) + x];
+				i++;
+			}
+		}
+	}
+
+	return dump;
+}
 int main()
 {
 	// create platform to accommodate for devices
