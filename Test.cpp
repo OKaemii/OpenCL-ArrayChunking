@@ -25,6 +25,7 @@ inline void checkErr(cl_int err, const char* name)
 std::vector<int> chunkWork1D(cl::Context context, cl::Program program, cl::Device device, std::vector<int> * vec, int chunkSize, int err = 0)
 {
 	// initial point to start of our vector
+	cl::Event event;
 	for (int * pVec = vec->data(); *pVec < vec->size(); pVec += chunkSize)
 	{
 		// create buffers, and kernel
@@ -40,9 +41,9 @@ std::vector<int> chunkWork1D(cl::Context context, cl::Program program, cl::Devic
 		cl::CommandQueue queue(context, device);
 
 		// sets up where we to read the finished GPU data
-		err = queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(chunkSize));
+		err = queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(chunkSize),  cl::NDRange(1), NULL, &event);
 		checkErr(err, "ND Range kernel execution");
-
+		event.wait();
 		// reads from GPU data from where it was set to based on NDRangeK
 		err = queue.enqueueReadBuffer(outBuf, CL_FALSE, 0, sizeof(int) * chunkSize, pVec); // get data from device, and work on buffer
 		checkErr(err, "Reading buffer...");
@@ -275,7 +276,7 @@ int main()
 	const cl::Context context(device);
 
 	// read in kernel file as source
-	std::ifstream kernelFile("ProcArray.cl");
+	std::ifstream kernelFile("ProcArray2.cl");
 	std::string src(std::istreambuf_iterator<char>(kernelFile), (std::istreambuf_iterator<char>()));
 	const cl::Program::Sources sources(1, std::make_pair(src.c_str(), src.size() + 1));
 
