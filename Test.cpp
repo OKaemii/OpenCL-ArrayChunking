@@ -17,7 +17,7 @@ inline void checkErr(cl_int err, const char* name)
 	if (err != CL_SUCCESS)
 	{
 		std::cerr << "ERROR: " << name << " (" << err << ")" << std::endl;
-		exit(EXIT_FAILURE);
+		//exit(EXIT_FAILURE);
 	}
 }
 
@@ -281,6 +281,7 @@ int main()
 
 	// create program from both context, and source
 	cl::Program program(context, sources);
+
 	err = program.build(devices, "-cl-std=CL1.2");
 	checkErr(err, "building program");
 

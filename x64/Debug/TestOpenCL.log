@@ -1,1 +1,5 @@
-﻿
+﻿  Test.cpp
+C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(177,26): warning C4018: '<': signed/unsigned mismatch
+C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(179,27): warning C4018: '<': signed/unsigned mismatch
+C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(181,28): warning C4018: '<': signed/unsigned mismatch
+  TestOpenCL.vcxproj -> C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\x64\Debug\TestOpenCL.exe
