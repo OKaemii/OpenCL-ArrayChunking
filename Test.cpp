@@ -194,13 +194,19 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 {
 	int chunkSize = (chunk_x + halo) * (chunk_y + halo) * (chunk_z + halo);
 
+	printf("chunksize = %d\n",chunkSize);
+
 	int x = 0;
 	int y = 0;
 	int z = 0;
 
+	int progress = 0;
+	printf("size of array to chunk: %d\n", vec->size());
 	// initial point to start of our vector
 	for (int* pVec = vec->data(); *pVec < vec->size(); pVec += chunkSize)
 	{
+		printf("chunking progress: %d\n", progress);
+
 		// create buffers, and kernel
 		cl::Buffer inBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, sizeof(int) * chunkSize, pVec);
 		cl::Buffer outBuf(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, sizeof(int) * chunkSize, nullptr);
@@ -251,6 +257,8 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 		// reads from GPU data from where it was set to based on NDRangeK
 		err = queue.enqueueReadBuffer(outBuf, CL_FALSE, 0, sizeof(int) * chunkSize, dump.data()); // get data from device, and work on buffer
 		checkErr(err, "Reading buffer...");
+
+		progress += chunkSize;
 	}
 
 	return *vec;

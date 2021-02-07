@@ -10,7 +10,7 @@ void calcTop(__global int* data, __global int* outData)
 
 void calcMid(__global int* data, __global int* outData)
 {
-	outData[get_global_id(0)] = data[get_global_id(0)] * 1;
+	outData[get_global_id(0)] = data[get_global_id(0)] * 0;
 }
 
 void calcBot(__global int* data, __global int* outData)
@@ -66,17 +66,11 @@ __kernel void doofus(__global int* data, __global int* outData, int x0, int y0, 
 	{
 		printf("<top: (%d,%d,%d) to (%d,%d,%d)>",x0,y0,z0,w0,h0,d0);
 		calcTop(data, outData);
-	}
-
-	// mid boundary?
-	if (doesIntersect(mid_aMinX, mid_aMinY, mid_aMinZ, mid_aMaxX, mid_aMaxY, mid_aMaxZ, x0, y0, z0, w0, h0, d0))
+	}else if (doesIntersect(mid_aMinX, mid_aMinY, mid_aMinZ, mid_aMaxX, mid_aMaxY, mid_aMaxZ, x0, y0, z0, w0, h0, d0))
 	{
 		printf("<mid: (%d,%d,%d) to (%d,%d,%d)>",x0,y0,z0,w0,h0,d0);
 		calcMid(data, outData);
-	}
-
-	// bot boundary?
-	if (doesIntersect(bot_aMinX, bot_aMinY, bot_aMinZ, bot_aMaxX, bot_aMaxY, bot_aMaxZ, x0, y0, z0, w0, h0, d0))
+	}else if (doesIntersect(bot_aMinX, bot_aMinY, bot_aMinZ, bot_aMaxX, bot_aMaxY, bot_aMaxZ, x0, y0, z0, w0, h0, d0))
 	{
 		printf("<bot: (%d,%d,%d) to (%d,%d,%d)>",x0,y0,z0,w0,h0,d0);
 		calcBot(data, outData);
