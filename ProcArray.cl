@@ -1,22 +1,22 @@
 void calcTop(__global int* data, __global int* outData);
 void calcMid(__global int* data, __global int* outData);
 void calcBot(__global int* data, __global int* outData);
-void calcNon(__global int* data, __global int* outData);
 bool doesIntersect(int aMinX, int aMinY, int aMinZ, int aMaxX, int aMaxY, int aMaxZ, int bMinX, int bMinY, int bMinZ, int bMaxX, int bMaxY, int bMaxZ);
 
 void calcTop(__global int* data, __global int* outData)
 {
-	*outData[get_global_id(0)] = *data[get_global_id(0)] * 3;
+	printf("");
+	outData[get_global_id(0)] = data[get_global_id(0)] * 3;
 }
 
 void calcMid(__global int* data, __global int* outData)
 {
-	*outData[get_global_id(0)] = *data[get_global_id(0)] * 0;
+	outData[get_global_id(0)] = data[get_global_id(0)] * 0;
 }
 
 void calcBot(__global int* data, __global int* outData)
 {
-	*outData[get_global_id(0)] = *data[get_global_id(0)] * 7;
+	outData[get_global_id(0)] = data[get_global_id(0)] * 7;
 }
 
 bool doesIntersect(int aMinX, int aMinY, int aMinZ, int aMaxX, int aMaxY, int aMaxZ, int bMinX, int bMinY, int bMinZ, int bMaxX, int bMaxY, int bMaxZ)
@@ -28,9 +28,8 @@ bool doesIntersect(int aMinX, int aMinY, int aMinZ, int aMaxX, int aMaxY, int aM
 //
 // takes in boundaries of selected chunk, and points to the correct calculation
 //
-__kernel void doofus(__global int* data, __global int* outData, int x0, int y0, int z0, int w0, int h0, int d0)
+__kernel void doofus(__global int*  data, __global int* outData, int x0, int y0, int z0, int w0, int h0, int d0)
 {
-	calcNon();
 	int _WIDTH = 30;
 	int _HEIGHT = 30;
 	int _DEPTH = 30;
