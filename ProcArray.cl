@@ -5,7 +5,8 @@ bool doesIntersect(int aMinX, int aMinY, int aMinZ, int aMaxX, int aMaxY, int aM
 
 void calcTop(__global int* data, __global int* outData)
 {
-	printf("");
+	// removing this empty printf breaks the code
+	printf(""); // the most important piece to make this work
 	outData[get_global_id(0)] = data[get_global_id(0)] * 3;
 }
 
