@@ -253,10 +253,10 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 		checkErr(err, "ND Range kernel execution");
 
 		// get array to send
-		std::vector<int> dump = vecToFortran3D(vec, halo, x, x + chunk_x, y, y + chunk_y, z, z + chunk_z);
+		// std::vector<int> dump = vecToFortran3D(vec, halo, x, x + chunk_x, y, y + chunk_y, z, z + chunk_z);
 
 		// reads from GPU data from where it was set to based on NDRangeK
-		err = queue.enqueueReadBuffer(outBuf, CL_FALSE, 0, sizeof(int) * chunkSize, dump.data()); // get data from device, and work on buffer
+		err = queue.enqueueReadBuffer(outBuf, CL_FALSE, 0, sizeof(int) * chunkSize, pVec); // get data from device, and work on buffer
 		checkErr(err, "Reading buffer...");
 
 		progress += chunkSize;
@@ -284,7 +284,7 @@ int main()
 	const cl::Context context(device);
 
 	// read in kernel file as source
-	std::ifstream kernelFile("ProcArray2.cl");
+	std::ifstream kernelFile("ProcArray.cl");
 	std::string src(std::istreambuf_iterator<char>(kernelFile), (std::istreambuf_iterator<char>()));
 	const cl::Program::Sources sources(1, std::make_pair(src.c_str(), src.size() + 1));
 
@@ -327,8 +327,8 @@ int main()
 	// cl::Context context, cl::Program program, cl::Device device, std::vector<int>* vec, cuint halo,
 	// cuint chunk_x, cuint chunk_y, cuint chunk_z, int err = 0
 	vec = chunkWork3D(context, program, device, &vec, 0, chunkSize_width, chunkSize_height, chunkSize_depth, err);
-	
-	for (auto &i:vec)
+
+	for (auto& i : vec)
 	{
 		printf("%d", i);
 	}
