@@ -33,24 +33,52 @@ __kernel void doofus(__global int* data, __global int* outData, int x0, int y0, 
 	int _HEIGHT = 30;
 	int _DEPTH = 30;
 
-	int x = 0;
-	int z = 0;
+	// boundary conditions
+	// top boundary
+	int top_aMinX = 0;
+	int top_aMinY = _HEIGHT;
+	int top_aMinZ = 0;
+
+	int top_aMaxX = _WIDTH;
+	int top_aMaxY = _HEIGHT * 2 / 3;
+	int top_aMaxZ =  _DEPTH;
+
+	// middle boundary
+	int mid_aMinX = 0;
+	int mid_aMinY =  _HEIGHT * 2 / 3;
+	int mid_aMinZ = 0;
+
+	int mid_aMaxX = _WIDTH;
+	int mid_aMaxY = _HEIGHT * 1 / 3;
+	int mid_aMaxZ = _DEPTH;
+
+	// bottom boundary
+	int bot_aMinX = 0;
+	int bot_aMinY = _HEIGHT * 1 / 3;
+	int bot_aMinZ = 0;
+
+	int bot_aMaxX = _WIDTH;
+	int bot_aMaxY = 0;
+	int bot_aMaxZ = _DEPTH;
 
 	// top boundary?
-	if (doesIntersect(x, _HEIGHT, z, _WIDTH, _HEIGHT * 2 / 3, _DEPTH, x0, y0, z0, w0, h0, d0))
+	if (doesIntersect(top_aMinX, top_aMinY, top_aMinZ, top_aMaxX, top_aMaxY, top_aMaxZ, x0, y0, z0, w0, h0, d0))
 	{
+		printf("<top: (%d,%d,%d) to (%d,%d,%d)>",x0,y0,z0,w0,h0,d0);
 		calcTop(data, outData);
 	}
 
 	// mid boundary?
-	if (doesIntersect(x, _HEIGHT * 2 / 3, z, _WIDTH, _HEIGHT * 1 / 3, _DEPTH, x0, y0, z0, w0, h0, d0))
+	if (doesIntersect(mid_aMinX, mid_aMinY, mid_aMinZ, mid_aMaxX, mid_aMaxY, mid_aMaxZ, x0, y0, z0, w0, h0, d0))
 	{
+		printf("<mid: (%d,%d,%d) to (%d,%d,%d)>",x0,y0,z0,w0,h0,d0);
 		calcMid(data, outData);
 	}
 
 	// bot boundary?
-	if (doesIntersect(x, _HEIGHT * 1 / 3, z, _WIDTH, 0, _DEPTH, x0, y0, z0, w0, h0, d0))
+	if (doesIntersect(bot_aMinX, bot_aMinY, bot_aMinZ, bot_aMaxX, bot_aMaxY, bot_aMaxZ, x0, y0, z0, w0, h0, d0))
 	{
+		printf("<bot: (%d,%d,%d) to (%d,%d,%d)>",x0,y0,z0,w0,h0,d0);
 		calcBot(data, outData);
 	}
 }
