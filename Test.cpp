@@ -190,10 +190,14 @@ std::vector<int> vecToFortran3D(std::vector<int>* vec, cuint halo, cuint x0, cui
 	return dump;
 }
 
-std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Device device, std::vector<int>* vec, cuint halo,
-	cuint chunk_x, cuint chunk_y, cuint chunk_z, int err = 0)
+std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Device device, std::vector<int>* vec, int halo,
+	int chunk_x, int chunk_y, int chunk_z, int err = 0)
 {
-	int chunkSize = (chunk_x + halo) * (chunk_y + halo) * (chunk_z + halo);
+	halo <<= 1;
+	chunk_x += (halo + chunk_x) > _WIDTH ? _WIDTH : halo;
+	chunk_y += (halo + chunk_y) > _HEIGHT ? _HEIGHT: halo;
+	chunk_z += (halo + chunk_z) > _DEPTH ? _DEPTH : halo;
+	int chunkSize = chunk_x * chunk_y * chunk_z;
 
 	printf("chunksize = %d\n",chunkSize);
 
@@ -204,12 +208,12 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 	int progress = 0;
 	printf("size of array to chunk: %d\n", vec->size());
 	// initial point to start of our vector
-	for (int* pVec = vec->data(); *pVec < vec->size(); pVec += chunkSize)
+	for (int i = 0; i < vec->size(); i += chunkSize)
 	{
 		printf("chunking progress: %d\n", progress);
 
 		// create buffers, and kernel
-		cl::Buffer inBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, sizeof(int) * chunkSize, pVec);
+		cl::Buffer inBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, sizeof(int) * chunkSize, &vec->data()[i]);
 		cl::Buffer outBuf(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, sizeof(int) * chunkSize, nullptr);
 
 		if (x >= _WIDTH)
@@ -256,7 +260,7 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 		// std::vector<int> dump = vecToFortran3D(vec, halo, x, x + chunk_x, y, y + chunk_y, z, z + chunk_z);
 
 		// reads from GPU data from where it was set to based on NDRangeK
-		err = queue.enqueueReadBuffer(outBuf, CL_FALSE, 0, sizeof(int) * chunkSize, pVec); // get data from device, and work on buffer
+		err = queue.enqueueReadBuffer(outBuf, CL_FALSE, 0, sizeof(int) * chunkSize, &vec->data()[i]); // get data from device, and work on buffer
 		checkErr(err, "Reading buffer...");
 
 		progress += chunkSize;
@@ -270,6 +274,7 @@ int main()
 	// create platform to accommodate for devices
 	std::vector<cl::Platform> platforms;
 	cl::Platform::get(&platforms);
+	// select GPU here I think?
 	cl::Platform platform = platforms.back();
 
 	// get GPU devices
@@ -277,7 +282,6 @@ int main()
 	auto err = platform.getDevices(CL_DEVICE_TYPE_GPU, &devices);
 	checkErr(err, "getting GPU devices");
 	
-	// select first available GPU
 	auto& device = devices.front();
 	printf("%s\n", device.getInfo<CL_DEVICE_NAME>().c_str());
 
@@ -307,13 +311,12 @@ int main()
 	std::fill(vec.begin(), vec.end(), 1);
 	
 	// 3D chunky boii
-	cuint chunkSize_width = 2;
-	cuint chunkSize_height = 2;
-	cuint chunkSize_depth = 2;
-	cuint chunkSize = chunkSize_width * chunkSize_height * chunkSize_depth;
+	cuint chunkSize_width = 10;
+	cuint chunkSize_height = 10;
+	cuint chunkSize_depth = 10;
 
 	// perform chunking function
-	vec = chunkWork3D(context, program, device, &vec, 3, chunkSize_width, chunkSize_height, chunkSize_depth, err);
+	vec = chunkWork3D(context, program, device, &vec, 0, chunkSize_width, chunkSize_height, chunkSize_depth, err);
 
 	for (auto& i : vec)
 	{
