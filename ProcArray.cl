@@ -1,21 +1,22 @@
 void calcTop(__global int* data, __global int* outData);
 void calcMid(__global int* data, __global int* outData);
 void calcBot(__global int* data, __global int* outData);
+void calcNon(__global int* data, __global int* outData);
 bool doesIntersect(int aMinX, int aMinY, int aMinZ, int aMaxX, int aMaxY, int aMaxZ, int bMinX, int bMinY, int bMinZ, int bMaxX, int bMaxY, int bMaxZ);
 
 void calcTop(__global int* data, __global int* outData)
 {
-	outData[get_global_id(0)] = data[get_global_id(0)] * 3;
+	*outData[get_global_id(0)] = *data[get_global_id(0)] * 3;
 }
 
 void calcMid(__global int* data, __global int* outData)
 {
-	outData[get_global_id(0)] = data[get_global_id(0)] * 0;
+	*outData[get_global_id(0)] = *data[get_global_id(0)] * 0;
 }
 
 void calcBot(__global int* data, __global int* outData)
 {
-	outData[get_global_id(0)] = data[get_global_id(0)] * 7;
+	*outData[get_global_id(0)] = *data[get_global_id(0)] * 7;
 }
 
 bool doesIntersect(int aMinX, int aMinY, int aMinZ, int aMaxX, int aMaxY, int aMaxZ, int bMinX, int bMinY, int bMinZ, int bMaxX, int bMaxY, int bMaxZ)
@@ -29,6 +30,7 @@ bool doesIntersect(int aMinX, int aMinY, int aMinZ, int aMaxX, int aMaxY, int aM
 //
 __kernel void doofus(__global int* data, __global int* outData, int x0, int y0, int z0, int w0, int h0, int d0)
 {
+	calcNon();
 	int _WIDTH = 30;
 	int _HEIGHT = 30;
 	int _DEPTH = 30;
@@ -41,11 +43,11 @@ __kernel void doofus(__global int* data, __global int* outData, int x0, int y0, 
 
 	int top_aMaxX = _WIDTH;
 	int top_aMaxY = _HEIGHT * 2 / 3;
-	int top_aMaxZ = _DEPTH;
+	int top_aMaxZ =  _DEPTH;
 
 	// middle boundary
 	int mid_aMinX = 0;
-	int mid_aMinY = _HEIGHT * 2 / 3;
+	int mid_aMinY =  _HEIGHT * 2 / 3;
 	int mid_aMinZ = 0;
 
 	int mid_aMaxX = _WIDTH;
@@ -65,19 +67,17 @@ __kernel void doofus(__global int* data, __global int* outData, int x0, int y0, 
 	if (doesIntersect(top_aMinX, top_aMinY, top_aMinZ, top_aMaxX, top_aMaxY, top_aMaxZ, x0, y0, z0, w0, h0, d0))
 	{
 		// printf("<top: (%d,%d,%d) to (%d,%d,%d)>\n",x0,y0,z0,w0,h0,d0);
-		//calcTop(data, outData);
-		outData[get_global_id(0)] = data[get_global_id(0)] * 3;
-	}
-	else if (doesIntersect(mid_aMinX, mid_aMinY, mid_aMinZ, mid_aMaxX, mid_aMaxY, mid_aMaxZ, x0, y0, z0, w0, h0, d0))
+		calcTop(data, outData);
+		// outData[get_global_id(0)] = data[get_global_id(0)] * 3;
+	}else if (doesIntersect(mid_aMinX, mid_aMinY, mid_aMinZ, mid_aMaxX, mid_aMaxY, mid_aMaxZ, x0, y0, z0, w0, h0, d0))
 	{
 		// printf("<mid: (%d,%d,%d) to (%d,%d,%d)>\n",x0,y0,z0,w0,h0,d0);
-		//calcMid(data, outData);
-		outData[get_global_id(0)] = data[get_global_id(0)] * 0;
-	}
-	else if (doesIntersect(bot_aMinX, bot_aMinY, bot_aMinZ, bot_aMaxX, bot_aMaxY, bot_aMaxZ, x0, y0, z0, w0, h0, d0))
+		calcMid(data, outData);
+		// outData[get_global_id(0)] = data[get_global_id(0)] * 0;
+	}else if (doesIntersect(bot_aMinX, bot_aMinY, bot_aMinZ, bot_aMaxX, bot_aMaxY, bot_aMaxZ, x0, y0, z0, w0, h0, d0))
 	{
 		// printf("<bot: (%d,%d,%d) to (%d,%d,%d)>\n",x0,y0,z0,w0,h0,d0);
-		//calcBot(data, outData);
-		outData[get_global_id(0)] = data[get_global_id(0)] * 7;
+		calcBot(data, outData);
+		// outData[get_global_id(0)] = data[get_global_id(0)] * 7;
 	}
 }

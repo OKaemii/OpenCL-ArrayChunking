@@ -4,4 +4,6 @@ C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(180,27): 
 C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(182,28): warning C4018: '<': signed/unsigned mismatch
 C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(205,9): warning C4477: 'printf' : format string '%d' requires an argument of type 'int', but variadic argument 1 has type 'unsigned __int64'
 C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(205,9): message : consider using '%zd' in the format string
+C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(297,9): warning C4101: 'actualLogSize': unreferenced local variable
+C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(296,7): warning C4101: 'buildLog': unreferenced local variable
   TestOpenCL.vcxproj -> C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\x64\Debug\TestOpenCL.exe

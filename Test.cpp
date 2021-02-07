@@ -290,19 +290,11 @@ int main()
 
 	// create program from both context, and source
 	cl::Program program(context, sources);
-
 	err = program.build(devices, "-cl-std=CL1.2");
 	checkErr(err, "building program");
 
-	char buildLog[1024];
-	size_t actualLogSize;
-	clGetProgramBuildInfo(program(), device(), CL_PROGRAM_BUILD_LOG, sizeof(char) * 1024, buildLog, &actualLogSize);
-
-	if (actualLogSize > 2) // i.e. there was something to report
-	{
-		std::cout << "Build log: (clipped to 1024 chars, actual size: " << actualLogSize << ")" << std::endl << std::endl;
-		std::cout << buildLog << std::endl;
-	}
+	// new and improved build errors lmao
+	printf("%s\n", program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device).c_str());
 
 	// make 3D array
 	cuint array_width = _WIDTH;
