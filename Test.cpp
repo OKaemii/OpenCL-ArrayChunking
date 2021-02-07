@@ -270,7 +270,7 @@ int main()
 	// create platform to accommodate for devices
 	std::vector<cl::Platform> platforms;
 	cl::Platform::get(&platforms);
-	cl::Platform platform = platforms.front();
+	cl::Platform platform = platforms.back();
 
 	// get GPU devices
 	std::vector<cl::Device> devices;
@@ -279,6 +279,7 @@ int main()
 	
 	// select first available GPU
 	auto& device = devices.front();
+	printf("%s\n", device.getInfo<CL_DEVICE_NAME>().c_str());
 
 	// create context from device
 	const cl::Context context(device);
@@ -301,24 +302,18 @@ int main()
 	cuint array_height = _HEIGHT;
 	cuint array_depth = _DEPTH;
 	cuint array_size = array_width * array_depth * array_height;
-	// int* array_3d = new int[array_size]; // delete later
-
-	// initialise 3d array
-	// memset(array_3d, 1,array_size);
 
 	std::vector<int> vec(array_size);
 	std::fill(vec.begin(), vec.end(), 1);
 	
 	// 3D chunky boii
-	cuint chunkSize_width = 10;
-	cuint chunkSize_height = 10;
-	cuint chunkSize_depth = 10;
+	cuint chunkSize_width = 2;
+	cuint chunkSize_height = 2;
+	cuint chunkSize_depth = 2;
 	cuint chunkSize = chunkSize_width * chunkSize_height * chunkSize_depth;
 
 	// perform chunking function
-	// cl::Context context, cl::Program program, cl::Device device, std::vector<int>* vec, cuint halo,
-	// cuint chunk_x, cuint chunk_y, cuint chunk_z, int err = 0
-	vec = chunkWork3D(context, program, device, &vec, 0, chunkSize_width, chunkSize_height, chunkSize_depth, err);
+	vec = chunkWork3D(context, program, device, &vec, 3, chunkSize_width, chunkSize_height, chunkSize_depth, err);
 
 	for (auto& i : vec)
 	{
