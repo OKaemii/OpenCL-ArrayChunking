@@ -1,19 +1,19 @@
-__kernel void calcTop(__global int* data, __global int* outData);
-__kernel void calcMid(__global int* data, __global int* outData);
-__kernel void calcBot(__global int* data, __global int* outData);
+void calcTop(__global int* data, __global int* outData);
+void calcMid(__global int* data, __global int* outData);
+void calcBot(__global int* data, __global int* outData);
 bool doesIntersect(int aMinX, int aMinY, int aMinZ, int aMaxX, int aMaxY, int aMaxZ, int bMinX, int bMinY, int bMinZ, int bMaxX, int bMaxY, int bMaxZ);
 
-__kernel void calcTop(__global int* data, __global int* outData)
+void calcTop(__global int* data, __global int* outData)
 {
 	outData[get_global_id(0)] = data[get_global_id(0)] * 3;
 }
 
-__kernel void calcMid(__global int* data, __global int* outData)
+void calcMid(__global int* data, __global int* outData)
 {
 	outData[get_global_id(0)] = data[get_global_id(0)] * 1;
 }
 
-__kernel void calcBot(__global int* data, __global int* outData)
+void calcBot(__global int* data, __global int* outData)
 {
 	outData[get_global_id(0)] = data[get_global_id(0)] * 7;
 }

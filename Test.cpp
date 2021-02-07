@@ -315,7 +315,9 @@ int main()
 	cuint chunkSize = chunkSize_width * chunkSize_height * chunkSize_depth;
 
 	// perform chunking function
-	vec = chunkWork3D(context, program, device, &vec, array_size, chunkSize_width, chunkSize_height, chunkSize_depth, err);
+	// cl::Context context, cl::Program program, cl::Device device, std::vector<int>* vec, cuint halo,
+	// cuint chunk_x, cuint chunk_y, cuint chunk_z, int err = 0
+	vec = chunkWork3D(context, program, device, &vec, 0, chunkSize_width, chunkSize_height, chunkSize_depth, err);
 	
 	for (auto &i:vec)
 	{
