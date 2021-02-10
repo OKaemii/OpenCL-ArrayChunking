@@ -6,7 +6,7 @@
 #include <string>
 
 typedef const unsigned int cuint;
-enum Block {TOP,MIDDLE,BOTTOM};
+enum Block { TOP, MIDDLE, BOTTOM };
 
 cuint _WIDTH = 30;
 cuint _HEIGHT = 30;
@@ -22,11 +22,11 @@ inline void checkErr(cl_int err, const char* name)
 }
 
 
-std::vector<int> chunkWork1D(cl::Context context, cl::Program program, cl::Device device, std::vector<int> * vec, int chunkSize, int err = 0)
+std::vector<int> chunkWork1D(cl::Context context, cl::Program program, cl::Device device, std::vector<int>* vec, int chunkSize, int err = 0)
 {
 	// initial point to start of our vector
 	cl::Event event;
-	for (int * pVec = vec->data(); *pVec < vec->size(); pVec += chunkSize)
+	for (int* pVec = vec->data(); *pVec < vec->size(); pVec += chunkSize)
 	{
 		// create buffers, and kernel
 		cl::Buffer inBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, sizeof(int) * chunkSize, pVec);
@@ -41,7 +41,7 @@ std::vector<int> chunkWork1D(cl::Context context, cl::Program program, cl::Devic
 		cl::CommandQueue queue(context, device);
 
 		// sets up where we to read the finished GPU data
-		err = queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(chunkSize),  cl::NDRange(1), NULL, &event);
+		err = queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(chunkSize), cl::NDRange(1), NULL, &event);
 		checkErr(err, "ND Range kernel execution");
 		event.wait();
 		// reads from GPU data from where it was set to based on NDRangeK
@@ -52,7 +52,7 @@ std::vector<int> chunkWork1D(cl::Context context, cl::Program program, cl::Devic
 	return *vec;
 }
 
-std::vector<int> chunkWork3D_old(cl::Context context, cl::Program program, cl::Device device, std::vector<int> * vec, cuint a_size,
+std::vector<int> chunkWork3D_old(cl::Context context, cl::Program program, cl::Device device, std::vector<int>* vec, cuint a_size,
 	cuint chunk_x, cuint chunk_y, cuint chunk_z, int err = 0)
 {
 	char calcToPerform[] = "calcNon";
@@ -195,11 +195,11 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 {
 	halo <<= 1;
 	chunk_x += (halo + chunk_x) > _WIDTH ? _WIDTH : halo;
-	chunk_y += (halo + chunk_y) > _HEIGHT ? _HEIGHT: halo;
+	chunk_y += (halo + chunk_y) > _HEIGHT ? _HEIGHT : halo;
 	chunk_z += (halo + chunk_z) > _DEPTH ? _DEPTH : halo;
 	int chunkSize = chunk_x * chunk_y * chunk_z;
 
-	printf("chunksize = %d\n",chunkSize);
+	printf("chunksize = %d\n", chunkSize);
 
 	int x = 0;
 	int y = 0;
@@ -233,8 +233,6 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 			y = 0;
 		}
 
-		x += chunk_x;
-
 		cl::Kernel kernel(program, "doofus", &err);
 		checkErr(err, "kernelling...");
 
@@ -246,9 +244,9 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 		kernel.setArg(3, y); // y0
 		kernel.setArg(4, z); // z0
 
-		kernel.setArg(5, x + chunk_x); // w0
-		kernel.setArg(6, y + chunk_y); // h0
-		kernel.setArg(7, z + chunk_z); // d0
+		kernel.setArg(5, chunk_x); // w0
+		kernel.setArg(6, chunk_y); // h0
+		kernel.setArg(7, chunk_z); // d0
 
 		cl::CommandQueue queue(context, device);
 
@@ -263,13 +261,14 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 		err = queue.enqueueReadBuffer(outBuf, CL_FALSE, 0, sizeof(int) * chunkSize, &vec->data()[i]); // get data from device, and work on buffer
 		checkErr(err, "Reading buffer...");
 
+		x += chunk_x;
 		progress += chunkSize;
 	}
 
 	return *vec;
 }
 
-int main()
+int runocl(int* nchunks)
 {
 	// create platform to accommodate for devices
 	std::vector<cl::Platform> platforms;
@@ -281,7 +280,7 @@ int main()
 	std::vector<cl::Device> devices;
 	auto err = platform.getDevices(CL_DEVICE_TYPE_GPU, &devices);
 	checkErr(err, "getting GPU devices");
-	
+
 	auto& device = devices.front();
 	printf("%s\n", device.getInfo<CL_DEVICE_NAME>().c_str());
 
@@ -309,14 +308,24 @@ int main()
 
 	std::vector<int> vec(array_size);
 	std::fill(vec.begin(), vec.end(), 1);
-	
+
 	// 3D chunky boii
-	cuint chunkSize_width = 10;
-	cuint chunkSize_height = 10;
-	cuint chunkSize_depth = 10;
+	int chunkSize_width = _WIDTH / nchunks[0];
+	int chunkSize_height = _HEIGHT / nchunks[1];
+	int chunkSize_depth = _DEPTH / nchunks[2];
+
+	// force chunksize to fit in memory
+	// if the selected chunk is not a factor of our array
+	// there will not be enough free memory in device.
+	// force chunk size to be cube and remainder
+	int factored_chunk = (_WIDTH * _HEIGHT * _DEPTH) % (chunkSize_width * chunkSize_height * chunkSize_depth);
+	if (factored_chunk != 0)
+	{
+		chunkSize_width = chunkSize_depth = chunkSize_height = factored_chunk;
+	}
 
 	// perform chunking function
-	vec = chunkWork3D(context, program, device, &vec, 0, chunkSize_width, chunkSize_height, chunkSize_depth, err);
+	vec = chunkWork3D(context, program, device, &vec, 2, chunkSize_width, chunkSize_height, chunkSize_depth, err);
 
 	for (auto& i : vec)
 	{
@@ -325,4 +334,8 @@ int main()
 
 	printf("\n");
 	cl::finish();
+}
+int main()
+{
+
 }
