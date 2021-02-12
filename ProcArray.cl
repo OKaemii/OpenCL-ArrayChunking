@@ -5,26 +5,20 @@ bool doesIntersect(int aMinX, int aMinY, int aMinZ, int aMaxX, int aMaxY, int aM
 
 void calcTop(__global int* data, __global int* outData)
 {
-	// removing this empty printf breaks the code
-	printf(""); // the most important piece to make this work
 	outData[get_global_id(0)] = data[get_global_id(0)] * 3;
 }
 
 void calcMid(__global int* data, __global int* outData)
 {
-	// removing this empty printf breaks the code
-	printf(""); // the most important piece to make this work
 	outData[get_global_id(0)] = data[get_global_id(0)] * 0;
 }
 
 void calcBot(__global int* data, __global int* outData)
 {
-	// removing this empty printf breaks the code
-	printf(""); // the most important piece to make this work
 	outData[get_global_id(0)] = data[get_global_id(0)] * 7;
 }
 
-bool doesIntersect1(int x0, int y0, int z0, int w0, int h0, int d0, int x1, int y1, int z1, int w1, int h1, int d1)
+bool doesIntersect(int x0, int y0, int z0, int w0, int h0, int d0, int x1, int y1, int z1, int w1, int h1, int d1)
 {
 	/*
 	* w,h,z: dimensions of object
@@ -96,6 +90,15 @@ __kernel void doofus(__global int* data, __global int* outData, int x0, int y0, 
 	int bot_aMaxX = _WIDTH;
 	int bot_aMaxY = _HEIGHT;
 	int bot_aMaxZ = _DEPTH;
+
+	/*
+	* TODO:
+	* identify which function needs to be called, case statement
+	* for each of those calls, work out if they need to be computed; work out which boundary it is to see if there is work to be done
+	* for any given state where you'd normally call a function, check if you need to call it
+	* for a function on the boundary, need to test if chunk is on that boundary or no operation
+	* for a function that calls regardless of boundary, need no check
+	*/
 
 	if (doesIntersect(top_aMinX, top_aMinY, top_aMinZ, top_aMaxX, top_aMaxY, top_aMaxZ, x0, y0, z0, w0, h0, d0))
 	{

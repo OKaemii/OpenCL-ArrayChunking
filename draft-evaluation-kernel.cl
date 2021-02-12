@@ -5,6 +5,14 @@
 
  */
 
+
+/*
+* based on location of chunk, if these calculations need to be computed is your task
+* sideflows will always need to be done, and need values from farside of domain
+* 
+* also should consider implementing reduction to improve performance (later)
+*/
+
 /* First populate the inflow plane */
 /* Iteration (Fortran convention)
 i: 0,1
@@ -13,7 +21,7 @@ k: 1, kp
 global range: 2*jp*kp
 */
 void init_inflow_plane(float* p) {
-    // ...
+    // ... - need to get i,j,k from global id to make this work
       p[F3D2C(ip+2, jp+2, 0,0,0, i,j,k)] = (k-1)/kp;
 }
 
@@ -25,7 +33,7 @@ k: 1,kp
 global range is ip*jp*kp
 */
 void init_domain(float* p) {
-    // ...
+    // ... - need to get i,j,k from global id to make this work
 
     p[F3D2C(ip+2, jp+2, 0,0,0, i,j,k)]  = 0.0;
 
@@ -33,7 +41,7 @@ void init_domain(float* p) {
 
 /* Calculate the outflow values */
 /* Iteration (Fortran convention)
-i: no iteration, p(ip+1,j,k)=p(ip,j,k)
+i: no iteration, p(ip+1,j,k)=p(ip,j,k) // pressure at ip+1 same as ip
 j: 1,jp
 k: 1,kp
 global range: jp*kp
@@ -44,6 +52,7 @@ void init_outflow_halo(float* p) {
 p[F3D2C(ip+2, jp+2, 0,0,0, ip+1,j,k)] = p[F3D2C(ip+2, jp+2, 0,0,0, ip,j,k)];
 
 }
+
 /* Calculate the periodic conditions */
 /* Iteration (Fortran convention)
 i: 1,ip
@@ -62,6 +71,14 @@ p[F3D2C(ip+2, jp+2, 0,0,0, i,jp+1,k)] = p[F3D2C(ip+2, jp+2, 0,0,0, i,1,k)];
 
 }
 
+/*
+* note: general case chunking does not work with periodic boundary cases with current implementation
+* further work is to add further buffer for other side
+* 
+* currently only chunk from 1 dimension
+*/
+
+
 /* Calculate the top and bottom conditions */
 /* Iteration (Fortran convention)
 i: 1,ip
@@ -71,6 +88,9 @@ p(i,j,0)=p(i,j,1)
 p(i,j,kp+1)=p(i,j,k)
 global range: jp*kp
 */
+
+// F3D2C the macro
+
 void init_top_bottom_halos(float* p) {
     // ...
 p[F3D2C(ip+2, jp+2, 0,0,0, i,j,0)] = p[F3D2C(ip+2, jp+2, 0,0,0, i,j,1)];
@@ -85,6 +105,9 @@ j: 1,jp
 k: 1,kp
 global range: ip*jp*kp
 
+// need a macro to get the correct
+// created a new array, and new values and return that back to host
+// partial derivative of 3 dimensions
 operation: p_new(i,j,k) = (
     p(i+1,j,k) + 
     p(i-1,j,k) +
