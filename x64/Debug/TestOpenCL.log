@@ -1,7 +1,7 @@
 ﻿  Test.cpp
-C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(178,26): warning C4018: '<': signed/unsigned mismatch
-C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(180,27): warning C4018: '<': signed/unsigned mismatch
-C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(182,28): warning C4018: '<': signed/unsigned mismatch
-C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(209,9): warning C4477: 'printf' : format string '%d' requires an argument of type 'int', but variadic argument 1 has type 'unsigned __int64'
-C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(209,9): message : consider using '%zd' in the format string
+C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(158,26): warning C4018: '<': signed/unsigned mismatch
+C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(160,27): warning C4018: '<': signed/unsigned mismatch
+C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(162,28): warning C4018: '<': signed/unsigned mismatch
+C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(189,9): warning C4477: 'printf' : format string '%d' requires an argument of type 'int', but variadic argument 1 has type 'unsigned __int64'
+C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(189,9): message : consider using '%zd' in the format string
   TestOpenCL.vcxproj -> C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\x64\Debug\TestOpenCL.exe

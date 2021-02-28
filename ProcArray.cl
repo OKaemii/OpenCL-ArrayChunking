@@ -1,7 +1,8 @@
-void calcTop(__global int* data, __global int* outData);
-void calcMid(__global int* data, __global int* outData);
-void calcBot(__global int* data, __global int* outData);
-bool doesIntersect(int aMinX, int aMinY, int aMinZ, int aMaxX, int aMaxY, int aMaxZ, int bMinX, int bMinY, int bMinZ, int bMaxX, int bMaxY, int bMaxZ);
+#define _WIDTH	30
+#define _HEIGHT	30
+#define _DEPTH	30
+
+
 
 void calcTop(__global int* data, __global int* outData)
 {
@@ -18,7 +19,7 @@ void calcBot(__global int* data, __global int* outData)
 	outData[get_global_id(0)] = data[get_global_id(0)] * 7;
 }
 
-bool doesIntersect(int x0, int y0, int z0, int w0, int h0, int d0, int x1, int y1, int z1, int w1, int h1, int d1)
+bool doesIntersect(int global_id, int x0, int y0, int z0, int w0, int h0, int d0, int x1, int y1, int z1, int w1, int h1, int d1)
 {
 	/*
 	* w,h,z: dimensions of object
@@ -59,10 +60,6 @@ bool doesIntersect(int x0, int y0, int z0, int w0, int h0, int d0, int x1, int y
 //
 __kernel void doofus(__global int* data, __global int* outData, int x0, int y0, int z0, int w0, int h0, int d0)
 {
-	int _WIDTH = 30;
-	int _HEIGHT = 30;
-	int _DEPTH = 30;
-
 	// boundary conditions
 	// top boundary
 	int top_aMinX = 0;
@@ -99,19 +96,29 @@ __kernel void doofus(__global int* data, __global int* outData, int x0, int y0, 
 	* for a function on the boundary, need to test if chunk is on that boundary or no operation
 	* for a function that calls regardless of boundary, need no check
 	*/
+	// co-ordinates of current index
+	int index = get_global_id(0);
+	int loc_x = x0 + ((index) % (x0+w0+1));
+	int loc_y = y0 + ((index) / ((x0 + w0) * (y0 + h0)+1));
+	int loc_z = z0 + (((index) / ((x0 + w0)) % (y0 + h0)+1));
+	//if (loc_x == 10 && loc_y == 10 && loc_z == 10)
+	//{
+	//	printf("\n\n\n YAY! \n\n\n");
+	//}
 
-	if (doesIntersect(top_aMinX, top_aMinY, top_aMinZ, top_aMaxX, top_aMaxY, top_aMaxZ, x0, y0, z0, w0, h0, d0))
+	if (doesIntersect(index, top_aMinX, top_aMinY, top_aMinZ, top_aMaxX, top_aMaxY, top_aMaxZ, loc_x, loc_y, loc_z, 1, 1, 1))
 	{
+		printf("D(%d, %d, %d)\n", loc_x, loc_y, loc_z);
 		calcTop(data, outData);
-		return;
 	}
-	if (doesIntersect(mid_aMinX, mid_aMinY, mid_aMinZ, mid_aMaxX, mid_aMaxY, mid_aMaxZ, x0, y0, z0, w0, h0, d0))
+	if (doesIntersect(index, mid_aMinX, mid_aMinY, mid_aMinZ, mid_aMaxX, mid_aMaxY, mid_aMaxZ, loc_x, loc_y, loc_z, 1, 1, 1))
 	{
+		printf("D(%d, %d, %d)\n", loc_x, loc_y, loc_z);
 		calcMid(data, outData);
 	}
-	if (doesIntersect(bot_aMinX, bot_aMinY, bot_aMinZ, bot_aMaxX, bot_aMaxY, bot_aMaxZ, x0, y0, z0, w0, h0, d0))
+	if (doesIntersect(index, bot_aMinX, bot_aMinY, bot_aMinZ, bot_aMaxX, bot_aMaxY, bot_aMaxZ, loc_x, loc_y, loc_z, 1, 1, 1))
 	{
+		printf("D(%d, %d, %d)\n", loc_x, loc_y, loc_z);
 		calcBot(data, outData);
-		return;
 	}
 }

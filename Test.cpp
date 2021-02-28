@@ -1,18 +1,23 @@
 #define CL_USE_DEPRECATED_OPENCL_2_0_APIS
 
-#include<CL/cl.hpp>
+#include <CL/cl.hpp>
 #include <iostream>
 #include <fstream>
 #include <string>
 
 typedef const unsigned int cuint;
-enum Block { TOP, MIDDLE, BOTTOM };
+enum Block
+{
+	TOP,
+	MIDDLE,
+	BOTTOM
+};
 
 cuint _WIDTH = 30;
 cuint _HEIGHT = 30;
 cuint _DEPTH = 30;
 
-inline void checkErr(cl_int err, const char* name)
+inline void checkErr(cl_int err, const char *name)
 {
 	if (err != CL_SUCCESS)
 	{
@@ -21,12 +26,11 @@ inline void checkErr(cl_int err, const char* name)
 	}
 }
 
-
-std::vector<int> chunkWork1D(cl::Context context, cl::Program program, cl::Device device, std::vector<int>* vec, int chunkSize, int err = 0)
+std::vector<int> chunkWork1D(cl::Context context, cl::Program program, cl::Device device, std::vector<int> *vec, int chunkSize, int err = 0)
 {
 	// initial point to start of our vector
 	cl::Event event;
-	for (int* pVec = vec->data(); *pVec < vec->size(); pVec += chunkSize)
+	for (int *pVec = vec->data(); *pVec < vec->size(); pVec += chunkSize)
 	{
 		// create buffers, and kernel
 		cl::Buffer inBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, sizeof(int) * chunkSize, pVec);
@@ -52,8 +56,8 @@ std::vector<int> chunkWork1D(cl::Context context, cl::Program program, cl::Devic
 	return *vec;
 }
 
-std::vector<int> chunkWork3D_old(cl::Context context, cl::Program program, cl::Device device, std::vector<int>* vec, cuint a_size,
-	cuint chunk_x, cuint chunk_y, cuint chunk_z, int err = 0)
+std::vector<int> chunkWork3D_old(cl::Context context, cl::Program program, cl::Device device, std::vector<int> *vec, cuint a_size,
+								 cuint chunk_x, cuint chunk_y, cuint chunk_z, int err = 0)
 {
 	char calcToPerform[] = "calcNon";
 	int chunkSize = chunk_x * chunk_y * chunk_z;
@@ -62,35 +66,11 @@ std::vector<int> chunkWork3D_old(cl::Context context, cl::Program program, cl::D
 	int z = 0;
 
 	// initial point to start of our vector
-	for (int* pVec = vec->data(); *pVec < vec->size(); pVec += chunkSize)
+	for (int *pVec = vec->data(); *pVec < vec->size(); pVec += chunkSize)
 	{
 		// create buffers, and kernel
 		cl::Buffer inBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, sizeof(int) * chunkSize, pVec);
 		cl::Buffer outBuf(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, sizeof(int) * chunkSize, nullptr);
-
-		//if (isTop(x,y,z, x+chunk_x,y+chunk_y,z+chunk_z))
-		//{
-		//	printf("TOP: %d %d %d\n", x, y, z);
-		//	strcpy_s(calcToPerform, "calcTop");
-		//}
-		//if (isMid(x, y, z, x+chunk_x, y+chunk_y, z+chunk_z))
-		//{
-		//	printf("MID: %d %d %d\n", x, y, z);
-		//	strcpy_s(calcToPerform, "calcMid");
-		//}
-		//if (isBot(x, y, z, x+chunk_x, y+chunk_y, z+chunk_z))
-		//{
-		//	printf("BOT: %d %d %d\n", x, y, z);
-		//	strcpy_s(calcToPerform, "calcBot");
-		//}
-
-		// TODO: overlap check
-		// Friday: unit testing
-		// no need to consider Z direction
-		// TODO: create a sub array for fortran convention on host
-		// TODO: coordinate check on the kernel side
-		// TODO: super-kernel case for every other kernel, but they are subroutines for other kernels
-		// TODO: consider three possible ways of chunking, chunk x, y or z dimension (chunk 1,2 or 3 dimensions)
 
 		if (x >= _WIDTH)
 		{
@@ -132,7 +112,7 @@ std::vector<int> chunkWork3D_old(cl::Context context, cl::Program program, cl::D
 	return *vec;
 }
 
-std::vector<int> vecToFortran3D(std::vector<int>* vec, cuint halo, cuint x0, cuint x1, cuint y0, cuint y1, cuint z0, cuint z1)
+std::vector<int> vecToFortran3D(std::vector<int> *vec, cuint halo, cuint x0, cuint x1, cuint y0, cuint y1, cuint z0, cuint z1)
 {
 	// take only what we need from our vector
 	// C is row-major order
@@ -190,8 +170,8 @@ std::vector<int> vecToFortran3D(std::vector<int>* vec, cuint halo, cuint x0, cui
 	return dump;
 }
 
-std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Device device, std::vector<int>* vec, int halo,
-	int chunk_x, int chunk_y, int chunk_z, int err = 0)
+std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Device device, std::vector<int> *vec, int halo,
+							 int chunk_x, int chunk_y, int chunk_z, int err = 0)
 {
 	halo <<= 1;
 	chunk_x += (halo + chunk_x) > _WIDTH ? _WIDTH : halo;
@@ -232,6 +212,7 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 		{
 			y = 0;
 		}
+		printf("H(%d, %d, %d)->(%d, %d, %d)\n", x, y, z, x+chunk_x, y+chunk_y, z+chunk_z);
 
 		cl::Kernel kernel(program, "doofus", &err);
 		checkErr(err, "kernelling...");
@@ -248,13 +229,12 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 		kernel.setArg(6, chunk_y); // h0
 		kernel.setArg(7, chunk_z); // d0
 
-
 		cl_event wait;
 		cl_int status;
 
 		cl::CommandQueue queue(context, device);
 
-		#pragma warning(disable : 4996)
+#pragma warning(disable : 4996)
 		status = clEnqueueMarker(queue(), &wait);
 		if (status != CL_SUCCESS)
 		{
@@ -290,8 +270,7 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 * two functions: one for initialisation, and one to run again and again
 * 
 */
-
-int runocl(int* nchunks)
+int runocl(int *nchunks)
 {
 	/*
 	* TODO:
@@ -320,7 +299,7 @@ int runocl(int* nchunks)
 	* platform info to find id for device, and pass that in for choice in device selection
 	*/
 
-	auto& device = devices.front();
+	auto &device = devices.front();
 	printf("%s\n", device.getInfo<CL_DEVICE_NAME>().c_str());
 
 	// create context from device
@@ -366,7 +345,7 @@ int runocl(int* nchunks)
 	// perform chunking function
 	vec = chunkWork3D(context, program, device, &vec, 2, chunkSize_width, chunkSize_height, chunkSize_depth, err);
 
-	for (auto& i : vec)
+	for (auto &i : vec)
 	{
 		printf("%d", i);
 	}
@@ -376,6 +355,73 @@ int runocl(int* nchunks)
 
 	return 0;
 }
+
+struct OpenCLBody
+/*
+	* TODO:
+	*
+	* allow user to specify platform and device index, and cl context, if not specified
+	* use default/optional parameters during the initialisation
+	* as long as some way for user to make their choice should they want to
+	* platform info to find id for device, and pass that in for choice in device selection
+	*/
+{
+	// create platform to accommodate for devices
+	std::vector<cl::Platform> platforms;
+
+	// get GPU devices
+	std::vector<cl::Device> devices;
+
+	// get path to kernel file
+	std::string kernel_source = "";
+
+	// context for device, this should be public to the struct?
+	cl::Context context;
+
+	OpenCLBody(std::vector<cl::Platform> platforms_, std::vector<cl::Device> devices_, std::string kernel_source_)
+		: platforms(platforms_), devices(devices_), kernel_source(kernel_source_)
+	{
+		// create platform to accommodate for devices
+		cl::Platform::get(&platforms);
+		// select GPU here I think?
+		cl::Platform platform = platforms.back();
+
+		// get GPU devices
+		auto err = platform.getDevices(CL_DEVICE_TYPE_GPU, &devices);
+		checkErr(err, "getting GPU devices");
+
+		auto &device = devices.front();
+		printf("%s\n", device.getInfo<CL_DEVICE_NAME>().c_str());
+
+		// create context from device
+		cl::Context context(device);
+
+		// read in kernel file as source
+		std::ifstream kernelFile(kernel_source);
+		std::string src(std::istreambuf_iterator<char>(kernelFile), (std::istreambuf_iterator<char>()));
+		const cl::Program::Sources sources(1, std::make_pair(src.c_str(), src.size() + 1));
+
+		// create program from both context, and source
+		cl::Program program(context, sources);
+		err = program.build(devices, "-cl-std=CL1.2");
+		checkErr(err, "building program");
+	}
+
+	~OpenCLBody()
+	{
+		cl_int clReleaseContext(cl_context context);
+		cl::finish();
+	}
+
+	void checkErr(cl_int err, const char *name)
+	{
+		if (err != CL_SUCCESS)
+		{
+			std::cerr << "ERROR: " << name << " (" << err << ")" << std::endl;
+			//exit(EXIT_FAILURE);
+		}
+	}
+};
 
 int main()
 {
@@ -390,16 +436,7 @@ int main()
 	auto err = platform.getDevices(CL_DEVICE_TYPE_GPU, &devices);
 	checkErr(err, "getting GPU devices");
 
-	/*
-	* TODO:
-	*
-	* allow user to specify platform and device index, and cl context, if not specified
-	* use default/optional parameters during the initialisation
-	* as long as some way for user to make their choice should they want to
-	* platform info to find id for device, and pass that in for choice in device selection
-	*/
-
-	auto& device = devices.front();
+	auto &device = devices.front();
 	printf("%s\n", device.getInfo<CL_DEVICE_NAME>().c_str());
 
 	// create context from device
@@ -428,24 +465,24 @@ int main()
 	std::fill(vec.begin(), vec.end(), 1);
 
 	// 3D chunky boii
-	int chunkSize_width = 10;
-	int chunkSize_height = 10;
-	int chunkSize_depth = 10;
+	int chunkSize_width = 30;
+	int chunkSize_height = 30;
+	int chunkSize_depth = 30;
 
 	// force chunksize to fit in memory
 	// if the selected chunk is not a factor of our array
 	// there will not be enough free memory in device.
 	// force chunk size to be cube and remainder
-	int factored_chunk = (_WIDTH * _HEIGHT * _DEPTH) % (chunkSize_width * chunkSize_height * chunkSize_depth);
-	if (factored_chunk != 0)
-	{
-		chunkSize_width = chunkSize_depth = chunkSize_height = factored_chunk;
-	}
+	//int factored_chunk = (_WIDTH * _HEIGHT * _DEPTH) % (chunkSize_width * chunkSize_height * chunkSize_depth);
+	//if (factored_chunk != 0)
+	//{
+	//	chunkSize_width = chunkSize_depth = chunkSize_height = factored_chunk;
+	//}
 
 	// perform chunking function
 	vec = chunkWork3D(context, program, device, &vec, 0, chunkSize_width, chunkSize_height, chunkSize_depth, err);
 
-	for (auto& i : vec)
+	for (auto &i : vec)
 	{
 		printf("%d", i);
 	}
