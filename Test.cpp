@@ -465,9 +465,9 @@ int main()
 	std::fill(vec.begin(), vec.end(), 1);
 
 	// 3D chunky boii
-	int chunkSize_width = 30;
-	int chunkSize_height = 30;
-	int chunkSize_depth = 30;
+	int chunkSize_width = 10;
+	int chunkSize_height = 10;
+	int chunkSize_depth = 10;
 
 	// force chunksize to fit in memory
 	// if the selected chunk is not a factor of our array

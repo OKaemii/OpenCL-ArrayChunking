@@ -98,27 +98,27 @@ __kernel void doofus(__global int* data, __global int* outData, int x0, int y0, 
 	*/
 	// co-ordinates of current index
 	int index = get_global_id(0);
-	int loc_x = x0 + ((index) % (x0+w0+1));
-	int loc_y = y0 + ((index) / ((x0 + w0) * (y0 + h0)+1));
-	int loc_z = z0 + (((index) / ((x0 + w0)) % (y0 + h0)+1));
-	//if (loc_x == 10 && loc_y == 10 && loc_z == 10)
-	//{
-	//	printf("\n\n\n YAY! \n\n\n");
-	//}
-
-	if (doesIntersect(index, top_aMinX, top_aMinY, top_aMinZ, top_aMaxX, top_aMaxY, top_aMaxZ, loc_x, loc_y, loc_z, 1, 1, 1))
+	int loc_x = x0 + ((index) % (x0+w0));
+	int loc_y = y0 + ((index) / ((x0 + w0) * (y0 + h0)));
+	int loc_z = z0 + (((index) / ((x0 + w0)) % (y0 + h0)));
+	if (loc_x == 30 && loc_y == 30 && loc_z == 30)
 	{
-		printf("D(%d, %d, %d)\n", loc_x, loc_y, loc_z);
+		printf("\n\n\n YAY! \n\n\n");
+	}
+
+	if (doesIntersect(index, top_aMinX, top_aMinY, top_aMinZ, top_aMaxX, top_aMaxY, top_aMaxZ, loc_x, loc_y, loc_z, 5, 5, 5))
+	{
+		// printf("D(%d, %d, %d)\n", loc_x, loc_y, loc_z);
 		calcTop(data, outData);
 	}
-	if (doesIntersect(index, mid_aMinX, mid_aMinY, mid_aMinZ, mid_aMaxX, mid_aMaxY, mid_aMaxZ, loc_x, loc_y, loc_z, 1, 1, 1))
+	if (doesIntersect(index, mid_aMinX, mid_aMinY, mid_aMinZ, mid_aMaxX, mid_aMaxY, mid_aMaxZ, loc_x, loc_y, loc_z, 5, 5, 5))
 	{
 		printf("D(%d, %d, %d)\n", loc_x, loc_y, loc_z);
 		calcMid(data, outData);
 	}
-	if (doesIntersect(index, bot_aMinX, bot_aMinY, bot_aMinZ, bot_aMaxX, bot_aMaxY, bot_aMaxZ, loc_x, loc_y, loc_z, 1, 1, 1))
+	if (doesIntersect(index, bot_aMinX, bot_aMinY, bot_aMinZ, bot_aMaxX, bot_aMaxY, bot_aMaxZ, loc_x, loc_y, loc_z, 5, 5, 5))
 	{
-		printf("D(%d, %d, %d)\n", loc_x, loc_y, loc_z);
+		// printf("D(%d, %d, %d)\n", loc_x, loc_y, loc_z);
 		calcBot(data, outData);
 	}
 }
