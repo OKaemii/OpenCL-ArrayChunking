@@ -103,24 +103,24 @@ __kernel void doofus(__global int* data, __global int* outData, int x0, int y0, 
 	int max_z = z0 + d0;
 
 	int loc_x = x0 + ((index) % max_x);
-	int loc_y = y0 + ((index) / (max_x * max_y));
-	int loc_z = z0 + ((index / max_x) % max_y);
+	int loc_y = y0 + ((index / max_x) % max_y);
+	int loc_z = z0 + ((index) / (max_x * max_y));
 
-	printf("D: Testing ranges: (%d, %d, %d)->(%d, %d, %d)\n",x0,y0,z0, max_x, max_y, max_z);
+	// printf("D: Testing ranges: (%d, %d, %d)->(%d, %d, %d)\n",x0,y0,z0, max_x, max_y, max_z);
 	if (loc_x>= max_x || loc_x <= x0-1)
 	{
-		// printf("(x0: %d  +%d --> max_x: %d) | current_id: %d\n", x0, loc_x - x0, max_x, loc_x);
-		loc_x -= x0;
+		printf("(x0: %d  +%d --> max_x: %d) | current_id: %d\n", x0, loc_x - x0, max_x, loc_x);
+		//loc_x -= x0;
 	}
 	if (loc_y >= max_y || loc_y <= y0 - 1)
 	{
-		// printf("(y0: %d  +%d --> max_y: %d) | current_id: %d\n", y0, loc_y - y0, max_y, loc_y);
-		loc_y -= y0;
+		printf("(y0: %d  +%d --> max_y: %d) | current_id: %d\n", y0, loc_y - y0, max_y, loc_y);
+		//loc_y -= y0;
 	}
 	if (loc_z >= max_z || loc_z <= z0 - 1)
 	{
-		// printf("(z0: %d  +%d --> max_z: %d) | current_id: %d\n", z0, loc_z - z0, max_z, loc_z);
-		loc_z -= z0;
+		printf("(z0: %d  +%d --> max_z: %d) | current_id: %d\n", z0, loc_z - z0, max_z, loc_z);
+		//loc_z -= z0;
 	}
 
 	if (doesIntersect(index, top_aMinX, top_aMinY, top_aMinZ, top_aMaxX, top_aMaxY, top_aMaxZ, loc_x, loc_y, loc_z, 5, 5, 5))
