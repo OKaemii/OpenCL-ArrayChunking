@@ -101,27 +101,15 @@ __kernel void doofus(__global int* data, __global int* outData, int index, int c
 	* for a function that calls regardless of boundary, need no check
 	*/
 
-	// find index of co-ordinates (x0, y0, z0)
-	int x0 = index % _WIDTH;
-	int y0 = temp_index % _HEIGHT;
-	int z0 = temp_index / _HEIGHT;
-
-	// dimensions x1, y1, z1
-	int index2 = index + chunkSize;
-	int x1 = index2 % _WIDTH;
-	int temp_index2 = index2 / _WIDTH;
-	int y1 = temp_index2 % _HEIGHT;
-	int z1 = temp_index2 / _HEIGHT;
-
+	// map global array index to local array id
 	int id = index + global_id;
 
+	// find index of co-ordinates (x0, y0, z0)
 	int loc_x = id % _WIDTH;
 	int loc_index = id / _WIDTH;
 	int loc_y = loc_index % _HEIGHT;
 	int loc_z = loc_index / _HEIGHT;
 	
-	// printf("@id: %d <-> %d |(%d, %d, %d) -> (%d, %d, %d) | current (%d, %d, %d)\n dim(%d, %d, %d)\n", global_id, id, x0,y0,z0, x1, y1, z1, loc_x, loc_y, loc_z, x1 - x0, y1 - y0, z1 - z0);
-	// printf("@%d | D(%d, %d, %d)->(%d, %d, %d) @(%d, %d, %d)\n", id, x0, y0, z0, x0+w0, y0+h0, z0+d0, loc_x, loc_y, loc_z);
 	if (doesIntersect(top_aMinX, top_aMinY, top_aMinZ, top_aMaxX, top_aMaxY, top_aMaxZ, loc_x, loc_y, loc_z, 2, 2, 2))
 	{
 		calcTop(data, outData);
