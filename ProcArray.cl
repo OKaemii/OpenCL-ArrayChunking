@@ -19,7 +19,7 @@ void calcBot(__global int* data, __global int* outData)
 	outData[get_global_id(0)] = data[get_global_id(0)] * 7;
 }
 
-bool doesIntersect(int global_id, int x0, int y0, int z0, int w0, int h0, int d0, int x1, int y1, int z1, int w1, int h1, int d1)
+bool doesIntersect(int x0, int y0, int z0, int w0, int h0, int d0, int x1, int y1, int z1, int w1, int h1, int d1)
 {
 	/*
 	* w,h,z: dimensions of object
@@ -97,41 +97,32 @@ __kernel void doofus(__global int* data, __global int* outData, int x0, int y0, 
 	* for a function that calls regardless of boundary, need no check
 	*/
 	// co-ordinates of current index
-	int index = get_global_id(0);
-	int max_x = x0 + w0;
-	int max_y = y0 + h0;
-	int max_z = z0 + d0;
+	int id = get_global_id(0);
 
-	int loc_x = x0 + ((index) % max_x);
-	int loc_y = y0 + ((index / max_x) % max_y);
-	int loc_z = z0 + ((index) / (max_x * max_y));
+	int max_x = _WIDTH;  //x0 + w0;
+	int max_y = _HEIGHT; //y0 + h0;
+	int max_z = _DEPTH;  //z0 + d0;
 
-	// printf("D: Testing ranges: (%d, %d, %d)->(%d, %d, %d)\n",x0,y0,z0, max_x, max_y, max_z);
-	if (loc_x>= max_x || loc_x <= x0-1)
-	{
-		printf("(x0: %d  +%d --> max_x: %d) | current_id: %d\n", x0, loc_x - x0, max_x, loc_x);
-		//loc_x -= x0;
-	}
-	if (loc_y >= max_y || loc_y <= y0 - 1)
-	{
-		printf("(y0: %d  +%d --> max_y: %d) | current_id: %d\n", y0, loc_y - y0, max_y, loc_y);
-		//loc_y -= y0;
-	}
-	if (loc_z >= max_z || loc_z <= z0 - 1)
-	{
-		printf("(z0: %d  +%d --> max_z: %d) | current_id: %d\n", z0, loc_z - z0, max_z, loc_z);
-		//loc_z -= z0;
-	}
+	// find index of co-ordinates (x0, y0, z0)
+	// dimensions w0, h0, d0
+	int index = x0 + w0 * (y0 + h0 * z0) + id;
 
-	if (doesIntersect(index, top_aMinX, top_aMinY, top_aMinZ, top_aMaxX, top_aMaxY, top_aMaxZ, loc_x, loc_y, loc_z, 5, 5, 5))
+	int loc_x = index % _WIDTH;
+	int temp_index = index / _WIDTH;
+	int loc_y = temp_index % _HEIGHT;
+	int loc_z = temp_index / _HEIGHT;
+	
+	// printf("@id: %d <-> %d | should start (%d, %d, %d)| real start (%d, %d, %d) -> (%d, %d, %d) | current (%d, %d, %d)\n", id, index, x,y,z,x0,y0,z0, x0 + w0, y0 + h0, z0 + d0, loc_x, loc_y, loc_z);
+	// printf("@%d | D(%d, %d, %d)->(%d, %d, %d) @(%d, %d, %d)\n", id, x0, y0, z0, x0+w0, y0+h0, z0+d0, loc_x, loc_y, loc_z);
+	if (doesIntersect(top_aMinX, top_aMinY, top_aMinZ, top_aMaxX, top_aMaxY, top_aMaxZ, loc_x, loc_y, loc_z, 2, 2, 2))
 	{
 		calcTop(data, outData);
 	}
-	if (doesIntersect(index, mid_aMinX, mid_aMinY, mid_aMinZ, mid_aMaxX, mid_aMaxY, mid_aMaxZ, loc_x, loc_y, loc_z, 5, 5, 5))
+	if (doesIntersect(mid_aMinX, mid_aMinY, mid_aMinZ, mid_aMaxX, mid_aMaxY, mid_aMaxZ, loc_x, loc_y, loc_z, 2, 2, 2))
 	{
 		calcMid(data, outData);
 	}
-	if (doesIntersect(index, bot_aMinX, bot_aMinY, bot_aMinZ, bot_aMaxX, bot_aMaxY, bot_aMaxZ, loc_x, loc_y, loc_z, 5, 5, 5))
+	if (doesIntersect(bot_aMinX, bot_aMinY, bot_aMinZ, bot_aMaxX, bot_aMaxY, bot_aMaxZ, loc_x, loc_y, loc_z, 2, 2, 2))
 	{
 		calcBot(data, outData);
 	}

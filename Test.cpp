@@ -190,29 +190,20 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 	// initial point to start of our vector
 	for (int i = 0; i < vec->size(); i += chunkSize)
 	{
-		printf("chunking progress: %d\n", progress);
-
 		// create buffers, and kernel
 		cl::Buffer inBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, sizeof(int) * chunkSize, &vec->data()[i]);
 		cl::Buffer outBuf(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, sizeof(int) * chunkSize, nullptr);
 
-		if (x >= _WIDTH)
-		{
-			x = 0;
-			z += chunk_z;
-		}
+		int x = i % _WIDTH;
+		int temp_index = i / _WIDTH;
+		int y = temp_index % _HEIGHT;
+		int z = temp_index / _HEIGHT;
 
-		if (z >= _DEPTH)
-		{
-			z = 0;
-			y += chunk_y;
-		}
-
-		if (y >= _HEIGHT)
-		{
-			y = 0;
-		}
-		printf("H(%d, %d, %d)->(%d, %d, %d)\n", x, y, z, x+chunk_x, y+chunk_y, z+chunk_z);
+		int i2 = i + chunkSize;
+		int w = ((i2) % _WIDTH) - x;
+		int temp_index2 = i2 / _WIDTH;
+		int h = (temp_index2 % _HEIGHT) - y;
+		int d = (temp_index2 / _HEIGHT) - z;
 
 		cl::Kernel kernel(program, "doofus", &err);
 		checkErr(err, "kernelling...");
@@ -225,9 +216,9 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 		kernel.setArg(3, y); // y0
 		kernel.setArg(4, z); // z0
 
-		kernel.setArg(5, chunk_x); // w0
-		kernel.setArg(6, chunk_y); // h0
-		kernel.setArg(7, chunk_z); // d0
+		kernel.setArg(5, w); // w0
+		kernel.setArg(6, h); // h0
+		kernel.setArg(7, d); // d0
 
 		cl_event wait;
 		cl_int status;
@@ -258,8 +249,7 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 		// reads from GPU data from where it was set to based on NDRangeK
 		err = queue.enqueueReadBuffer(outBuf, CL_FALSE, 0, sizeof(int) * chunkSize, &vec->data()[i]); // get data from device, and work on buffer
 		checkErr(err, "Reading buffer...");
-
-		x += chunk_x;
+		printf("chunking progress: %d | (%d, %d, %d) -> (%d, %d, %d)\n", progress, x,y,z, x+w, y+h, z+d);
 		progress += chunkSize;
 	}
 
