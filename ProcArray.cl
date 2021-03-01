@@ -58,8 +58,12 @@ bool doesIntersect(int x0, int y0, int z0, int w0, int h0, int d0, int x1, int y
 //
 // takes in boundaries of selected chunk, and points to the correct calculation
 //
-__kernel void doofus(__global int* data, __global int* outData, int x0, int y0, int z0, int w0, int h0, int d0)
+__kernel void doofus(__global int* data, __global int* outData, int index, int chunkSize)
 {
+	// co-ordinates of current index
+	int global_id = get_global_id(0);
+	int temp_index = index / _WIDTH;
+
 	// boundary conditions
 	// top boundary
 	int top_aMinX = 0;
@@ -96,23 +100,27 @@ __kernel void doofus(__global int* data, __global int* outData, int x0, int y0, 
 	* for a function on the boundary, need to test if chunk is on that boundary or no operation
 	* for a function that calls regardless of boundary, need no check
 	*/
-	// co-ordinates of current index
-	int id = get_global_id(0);
-
-	int max_x = _WIDTH;  //x0 + w0;
-	int max_y = _HEIGHT; //y0 + h0;
-	int max_z = _DEPTH;  //z0 + d0;
 
 	// find index of co-ordinates (x0, y0, z0)
-	// dimensions w0, h0, d0
-	int index = x0 + w0 * (y0 + h0 * z0) + id;
+	int x0 = index % _WIDTH;
+	int y0 = temp_index % _HEIGHT;
+	int z0 = temp_index / _HEIGHT;
 
-	int loc_x = index % _WIDTH;
-	int temp_index = index / _WIDTH;
-	int loc_y = temp_index % _HEIGHT;
-	int loc_z = temp_index / _HEIGHT;
+	// dimensions x1, y1, z1
+	int index2 = index + chunkSize;
+	int x1 = index2 % _WIDTH;
+	int temp_index2 = index2 / _WIDTH;
+	int y1 = temp_index2 % _HEIGHT;
+	int z1 = temp_index2 / _HEIGHT;
+
+	int id = index + global_id;
+
+	int loc_x = id % _WIDTH;
+	int loc_index = id / _WIDTH;
+	int loc_y = loc_index % _HEIGHT;
+	int loc_z = loc_index / _HEIGHT;
 	
-	// printf("@id: %d <-> %d | should start (%d, %d, %d)| real start (%d, %d, %d) -> (%d, %d, %d) | current (%d, %d, %d)\n", id, index, x,y,z,x0,y0,z0, x0 + w0, y0 + h0, z0 + d0, loc_x, loc_y, loc_z);
+	// printf("@id: %d <-> %d |(%d, %d, %d) -> (%d, %d, %d) | current (%d, %d, %d)\n dim(%d, %d, %d)\n", global_id, id, x0,y0,z0, x1, y1, z1, loc_x, loc_y, loc_z, x1 - x0, y1 - y0, z1 - z0);
 	// printf("@%d | D(%d, %d, %d)->(%d, %d, %d) @(%d, %d, %d)\n", id, x0, y0, z0, x0+w0, y0+h0, z0+d0, loc_x, loc_y, loc_z);
 	if (doesIntersect(top_aMinX, top_aMinY, top_aMinZ, top_aMaxX, top_aMaxY, top_aMaxZ, loc_x, loc_y, loc_z, 2, 2, 2))
 	{

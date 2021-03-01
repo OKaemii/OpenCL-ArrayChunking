@@ -200,25 +200,21 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 		int z = temp_index / _HEIGHT;
 
 		int i2 = i + chunkSize;
-		int w = ((i2) % _WIDTH) - x;
+
+		int x1 = i2 % _WIDTH;
 		int temp_index2 = i2 / _WIDTH;
-		int h = (temp_index2 % _HEIGHT) - y;
-		int d = (temp_index2 / _HEIGHT) - z;
+		int y1 = temp_index2 % _HEIGHT;
+		int z1 = temp_index2 / _HEIGHT;
 
 		cl::Kernel kernel(program, "doofus", &err);
 		checkErr(err, "kernelling...");
-
+		printf("i: %d | (%d, %d, %d) -> (%d, %d, %d)\n", i2, x, y, z, x1, y1, z1);
 		// fill in args of the user made kernel func in .cl
 		kernel.setArg(0, inBuf);
 		kernel.setArg(1, outBuf);
 
-		kernel.setArg(2, x); // x0
-		kernel.setArg(3, y); // y0
-		kernel.setArg(4, z); // z0
-
-		kernel.setArg(5, w); // w0
-		kernel.setArg(6, h); // h0
-		kernel.setArg(7, d); // d0
+		kernel.setArg(2, i);
+		kernel.setArg(3, chunkSize);
 
 		cl_event wait;
 		cl_int status;
@@ -249,7 +245,7 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 		// reads from GPU data from where it was set to based on NDRangeK
 		err = queue.enqueueReadBuffer(outBuf, CL_FALSE, 0, sizeof(int) * chunkSize, &vec->data()[i]); // get data from device, and work on buffer
 		checkErr(err, "Reading buffer...");
-		printf("chunking progress: %d | (%d, %d, %d) -> (%d, %d, %d)\n", progress, x,y,z, x+w, y+h, z+d);
+		
 		progress += chunkSize;
 	}
 
