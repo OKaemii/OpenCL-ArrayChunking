@@ -214,7 +214,7 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 		kernel.setArg(1, outBuf);
 
 		kernel.setArg(2, i);
-		kernel.setArg(3, chunkSize);
+		// kernel.setArg(3, chunkSize);
 
 		cl_event wait;
 		cl_int status;
