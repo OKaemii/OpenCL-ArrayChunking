@@ -173,11 +173,16 @@ std::vector<int> vecToFortran3D(std::vector<int> *vec, cuint halo, cuint x0, cui
 std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Device device, std::vector<int> *vec, int halo,
 							 int chunk_x, int chunk_y, int chunk_z, int err = 0)
 {
-	halo <<= 1;
-	chunk_x += (halo + chunk_x) > _WIDTH ? _WIDTH : halo;
-	chunk_y += (halo + chunk_y) > _HEIGHT ? _HEIGHT : halo;
-	chunk_z += (halo + chunk_z) > _DEPTH ? _DEPTH : halo;
+	int vecSize = vec->size();
 	int chunkSize = chunk_x * chunk_y * chunk_z;
+
+	// for halo subarrays
+	std::vector<int>::const_iterator starting_index;
+	std::vector<int>::const_iterator ending_index;
+
+	// haloes
+	
+	std::vector<int> rightHalo;
 
 	printf("chunksize = %d\n", chunkSize);
 
@@ -190,9 +195,54 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 	// initial point to start of our vector
 	for (int i = 0; i < vec->size(); i += chunkSize)
 	{
+
+		int halo_range_left = i - halo;
+		int halo_range_right = (i + chunkSize) + halo;
+
+		// make array to send with the halo
+
+		// left part of array
+		if (halo_range_left < 0)
+		{
+			starting_index = vec->begin() + (vecSize + halo_range_left);
+			ending_index = vec->begin() + (vecSize);
+		}
+		else
+		{
+			starting_index = vec->begin() + halo_range_left;
+			ending_index = vec->begin() + i;
+		}
+		std::vector<int> leftHalo(starting_index, ending_index);
+
+		// right part of array
+		if (halo_range_right > vecSize)
+		{
+			starting_index = vec->begin();
+			ending_index = vec->begin() + (halo_range_right);
+		}
+		else
+		{
+			starting_index = vec->begin() + (i + chunkSize);
+			ending_index = vec->begin() + (halo_range_right);
+		}
+		std::vector<int> rightHalo(starting_index, ending_index);
+
+
+		// combine attachments
+
+		starting_index = vec->begin() + (i);
+		ending_index = vec->begin() + (i + chunkSize);
+		// make initial array
+		std::vector<int> vectorToEvaluate(starting_index, ending_index);
+		// attach left halo
+		vectorToEvaluate.insert(vectorToEvaluate.begin(), leftHalo.begin(), leftHalo.end());
+		// attach right halo
+		vectorToEvaluate.insert(vectorToEvaluate.end(), rightHalo.begin(), rightHalo.end());
+
+
 		// create buffers, and kernel
-		cl::Buffer inBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, sizeof(int) * chunkSize, &vec->data()[i]);
-		cl::Buffer outBuf(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, sizeof(int) * chunkSize, nullptr);
+		cl::Buffer inBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, sizeof(int) * vectorToEvaluate.size(), &vectorToEvaluate.data()[0]);
+		cl::Buffer outBuf(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, sizeof(int) * vectorToEvaluate.size(), nullptr);
 
 		int x = i % _WIDTH;
 		int temp_index = i / _WIDTH;
@@ -214,7 +264,8 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 		kernel.setArg(1, outBuf);
 
 		kernel.setArg(2, i);
-		// kernel.setArg(3, chunkSize);
+		kernel.setArg(3, chunkSize);
+		kernel.setArg(4, halo);
 
 		cl_event wait;
 		cl_int status;
@@ -232,9 +283,6 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 		err = queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(chunkSize)); // global, local range here
 		checkErr(err, "ND Range kernel execution");
 
-		// get array to send
-		// std::vector<int> dump = vecToFortran3D(vec, halo, x, x + chunk_x, y, y + chunk_y, z, z + chunk_z);
-
 		// block until everything is done
 		status = clWaitForEvents(1, &wait);
 		if (status != CL_SUCCESS)
@@ -243,8 +291,13 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 		}
 
 		// reads from GPU data from where it was set to based on NDRangeK
-		err = queue.enqueueReadBuffer(outBuf, CL_FALSE, 0, sizeof(int) * chunkSize, &vec->data()[i]); // get data from device, and work on buffer
+		// get data from device, and work on buffer
+		err = queue.enqueueReadBuffer(outBuf, CL_FALSE, 0, sizeof(int) * vectorToEvaluate.size(), &vectorToEvaluate.data()[0]);
 		checkErr(err, "Reading buffer...");
+
+		// we only want the non halo part
+		std::copy(vectorToEvaluate.begin() + halo, vectorToEvaluate.begin() + halo + chunkSize, vec->begin() + i);
+
 		
 		progress += chunkSize;
 	}
@@ -466,7 +519,7 @@ int main()
 	//}
 
 	// perform chunking function
-	vec = chunkWork3D(context, program, device, &vec, 0, chunkSize_width, chunkSize_height, chunkSize_depth, err);
+	vec = chunkWork3D(context, program, device, &vec, 2, chunkSize_width, chunkSize_height, chunkSize_depth, err);
 
 	for (auto &i : vec)
 	{

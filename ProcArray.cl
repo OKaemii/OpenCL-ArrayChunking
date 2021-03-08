@@ -58,7 +58,7 @@ bool doesIntersect(int x0, int y0, int z0, int w0, int h0, int d0, int x1, int y
 //
 // takes in boundaries of selected chunk, and points to the correct calculation
 //
-__kernel void doofus(__global int* data, __global int* outData, int index)
+__kernel void doofus(__global int* data, __global int* outData, int index, int chunkSize, int halo)
 {
 	// co-ordinates of current index
 	int global_id = get_global_id(0);
