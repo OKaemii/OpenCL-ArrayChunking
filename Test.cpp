@@ -208,7 +208,7 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 		}
 		if (halo_range_right > vecSize)
 		{
-			right_attachment.insert(right_attachment.begin(), vec->begin(), vec->begin() + halo_range_right);
+			right_attachment.insert(right_attachment.begin(), vec->begin(), vec->begin() + (halo_range_right - vecSize));
 			halo_range_right = vecSize;
 		}
 		starting_index = vec->begin() + halo_range_left;

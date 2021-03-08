@@ -62,8 +62,18 @@ __kernel void doofus(__global int* data, __global int* outData, int index, int c
 {
 	// co-ordinates of current index
 	int global_id = get_global_id(0);
-	int temp_index = index / _WIDTH;
 
+	// if co-ordinates halo, skip
+	if (global_id < halo)
+	{
+		return;
+	}
+	if (global_id > halo + chunkSize)
+	{
+		return;
+	}
+
+	int temp_index = index / _WIDTH;
 	// boundary conditions
 	// top boundary
 	int top_aMinX = 0;
