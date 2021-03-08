@@ -3,6 +3,7 @@ C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(158,26): 
 C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(160,27): warning C4018: '<': signed/unsigned mismatch
 C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(162,28): warning C4018: '<': signed/unsigned mismatch
 C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(176,27): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(194,9): warning C4477: 'printf' : format string '%d' requires an argument of type 'int', but variadic argument 1 has type 'unsigned __int64'
-C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(194,9): message : consider using '%zd' in the format string
+C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(190,9): warning C4477: 'printf' : format string '%d' requires an argument of type 'int', but variadic argument 1 has type 'unsigned __int64'
+C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(190,9): message : consider using '%zd' in the format string
+C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(222,63): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
   TestOpenCL.vcxproj -> C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\x64\Debug\TestOpenCL.exe

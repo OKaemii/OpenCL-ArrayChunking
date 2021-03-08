@@ -180,10 +180,6 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 	std::vector<int>::const_iterator starting_index;
 	std::vector<int>::const_iterator ending_index;
 
-	// haloes
-	
-	std::vector<int> rightHalo;
-
 	printf("chunksize = %d\n", chunkSize);
 
 	int x = 0;
@@ -195,54 +191,39 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 	// initial point to start of our vector
 	for (int i = 0; i < vec->size(); i += chunkSize)
 	{
-
+		// find start and end positions to send
 		int halo_range_left = i - halo;
 		int halo_range_right = (i + chunkSize) + halo;
 
-		// make array to send with the halo
+		std::vector<int> left_attachment;
+		std::vector<int> right_attachment;
+		std::vector<int>::const_iterator starting_index;
+		std::vector<int>::const_iterator ending_index;
 
-		// left part of array
+		// it needs to get other boundary
 		if (halo_range_left < 0)
 		{
-			starting_index = vec->begin() + (vecSize + halo_range_left);
-			ending_index = vec->begin() + (vecSize);
+			left_attachment.insert(left_attachment.begin(), vec->end() + halo_range_left, vec->end());
+			halo_range_left = 0;
 		}
-		else
-		{
-			starting_index = vec->begin() + halo_range_left;
-			ending_index = vec->begin() + i;
-		}
-		std::vector<int> leftHalo(starting_index, ending_index);
-
-		// right part of array
 		if (halo_range_right > vecSize)
 		{
-			starting_index = vec->begin();
-			ending_index = vec->begin() + (halo_range_right);
+			right_attachment.insert(right_attachment.begin(), vec->begin(), vec->begin() + halo_range_right);
+			halo_range_right = vecSize;
 		}
-		else
-		{
-			starting_index = vec->begin() + (i + chunkSize);
-			ending_index = vec->begin() + (halo_range_right);
-		}
-		std::vector<int> rightHalo(starting_index, ending_index);
-
-
-		// combine attachments
-
-		starting_index = vec->begin() + (i);
-		ending_index = vec->begin() + (i + chunkSize);
-		// make initial array
+		starting_index = vec->begin() + halo_range_left;
+		ending_index = vec->begin() + halo_range_right;
 		std::vector<int> vectorToEvaluate(starting_index, ending_index);
-		// attach left halo
-		vectorToEvaluate.insert(vectorToEvaluate.begin(), leftHalo.begin(), leftHalo.end());
-		// attach right halo
-		vectorToEvaluate.insert(vectorToEvaluate.end(), rightHalo.begin(), rightHalo.end());
 
+		// append out of bound vectors if any
+		vectorToEvaluate.insert(vectorToEvaluate.begin(), left_attachment.begin(), left_attachment.end());
+		vectorToEvaluate.insert(vectorToEvaluate.end(), right_attachment.begin(), right_attachment.end());
+
+		int sizeofDataToPass = sizeof(int) * vectorToEvaluate.size();
 
 		// create buffers, and kernel
-		cl::Buffer inBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, sizeof(int) * vectorToEvaluate.size(), &vectorToEvaluate.data()[0]);
-		cl::Buffer outBuf(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, sizeof(int) * vectorToEvaluate.size(), nullptr);
+		cl::Buffer inBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, sizeofDataToPass, &vectorToEvaluate.data()[0]);
+		cl::Buffer outBuf(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, sizeofDataToPass, nullptr);
 
 		int x = i % _WIDTH;
 		int temp_index = i / _WIDTH;
@@ -280,7 +261,7 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 		}
 
 		// sets up where we to read the finished GPU data
-		err = queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(chunkSize)); // global, local range here
+		err = queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(sizeofDataToPass)); // global, local range here
 		checkErr(err, "ND Range kernel execution");
 
 		// block until everything is done
@@ -292,7 +273,7 @@ std::vector<int> chunkWork3D(cl::Context context, cl::Program program, cl::Devic
 
 		// reads from GPU data from where it was set to based on NDRangeK
 		// get data from device, and work on buffer
-		err = queue.enqueueReadBuffer(outBuf, CL_FALSE, 0, sizeof(int) * vectorToEvaluate.size(), &vectorToEvaluate.data()[0]);
+		err = queue.enqueueReadBuffer(outBuf, CL_FALSE, 0, sizeofDataToPass, &vectorToEvaluate.data()[0]);
 		checkErr(err, "Reading buffer...");
 
 		// we only want the non halo part
@@ -504,9 +485,9 @@ int main()
 	std::fill(vec.begin(), vec.end(), 1);
 
 	// 3D chunky boii
-	int chunkSize_width = 2;
-	int chunkSize_height = 2;
-	int chunkSize_depth = 2;
+	int chunkSize_width = 15;
+	int chunkSize_height = 15;
+	int chunkSize_depth = 15;
 
 	// force chunksize to fit in memory
 	// if the selected chunk is not a factor of our array
@@ -519,7 +500,7 @@ int main()
 	//}
 
 	// perform chunking function
-	vec = chunkWork3D(context, program, device, &vec, 2, chunkSize_width, chunkSize_height, chunkSize_depth, err);
+	vec = chunkWork3D(context, program, device, &vec, 8, chunkSize_width, chunkSize_height, chunkSize_depth, err);
 
 	for (auto &i : vec)
 	{
