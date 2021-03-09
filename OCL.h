@@ -10,20 +10,6 @@
 class OCL
 {
 public:
-	// entire array body to work with
-	std::vector<int> arrMainBody;
-
-	int _WIDTH = 30;
-	int _HEIGHT = 30;
-	int _DEPTH = 30;
-
-	int chunk_x = 15;
-	int chunk_y = 15;
-	int chunk_z = 15;
-
-	// buffer for our main body
-	cl::Buffer cl_arrMainBody_buffer;
-
 	/*
 	* default constructor for OpenCL initialisation 
 	* platform, and device are automatically chosen
@@ -39,7 +25,7 @@ public:
 	/*
 	* initialise data for kernel
 	*/
-	void init();
+	void init(int platform_id = 0, int device_id = 0);
 
 	/*
 	* the bread and butter
@@ -47,31 +33,59 @@ public:
 	void run();
 
 	// function to return our error info
-	void checkErr(cl_int err, const char* name);
+	bool checkErr(cl_int err, const char* name);
+
+	// entire array body to work with
+	std::vector<int> arrMainBody;
+
+	struct data_struct
+	{
+		// make 3D array
+		int _WIDTH = 30;
+		int _HEIGHT = 30;
+		int _DEPTH = 30;
+
+		// 3D chunky boii
+		int chunk_x = 10;
+		int chunk_y = 10;
+		int chunk_z = 10;
+	};
 
 private:
+	struct ocl_body
+	{
+		// platform used
+		cl::Platform platform;
+
+		// device object used
+		cl::Device device;
+
+		// context menu
+		cl::Context context;
+
+		// command queue for something
+		cl::CommandQueue queue;
+
+		// something here
+		cl::Program program;
+
+		// our super kernel
+		cl::Kernel kernel;
+
+		// for our wait event
+		cl::Event event;
+
+		// for error log
+		cl_int err;
+	};
 
 	// list of available platforms
 	std::vector<cl::Platform> platforms;
 	cl::Platform platform; // platform to use
-	int platform_id; // platform to use
 
 	// list of available devices
 	std::vector<cl::Device> devices;
-	cl::Device device; // device object
-	int device_id; // device to use
-
-	// context menu
-	cl::Context context;
-
-	// command queue for something
-	cl::CommandQueue queue;
-
-	// something here
-	cl::Program program;
-
-	// our super kernel
-	cl::Kernel kernel;
+	cl::Device device; // device object to use
 
 	// for our wait event
 	cl::Event event;

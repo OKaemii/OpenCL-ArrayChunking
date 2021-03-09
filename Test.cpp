@@ -282,95 +282,19 @@
 //
 ///*
 //* two functions: one for initialisation, and one to run again and again
-//* 
-//*/
-//int runocl(int *nchunks)
-//{
+
 //	/*
 //	* TODO:
 //	* 
 //	* could make all the platform and device into a struct
 //	* so we have a single pointer instead of many
 //	*/
-//
-//	// create platform to accommodate for devices
-//	std::vector<cl::Platform> platforms;
-//	cl::Platform::get(&platforms);
-//	// select GPU here I think?
-//	cl::Platform platform = platforms.back();
-//
-//	// get GPU devices
-//	std::vector<cl::Device> devices;
-//	auto err = platform.getDevices(CL_DEVICE_TYPE_GPU, &devices);
-//	checkErr(err, "getting GPU devices");
-//
-//	/*
-//	* TODO:
-//	* 
-//	* allow user to specify platform and device index, and cl context, if not specified
-//	* use default/optional parameters during the initialisation
-//	* as long as some way for user to make their choice should they want to
-//	* platform info to find id for device, and pass that in for choice in device selection
-//	*/
-//
-//	auto &device = devices.front();
-//	printf("%s\n", device.getInfo<CL_DEVICE_NAME>().c_str());
-//
-//	// create context from device
-//	const cl::Context context(device);
-//
-//	// read in kernel file as source
-//	std::ifstream kernelFile("ProcArray.cl");
-//	std::string src(std::istreambuf_iterator<char>(kernelFile), (std::istreambuf_iterator<char>()));
-//	const cl::Program::Sources sources(1, std::make_pair(src.c_str(), src.size() + 1));
-//
-//	// create program from both context, and source
-//	cl::Program program(context, sources);
-//	err = program.build(devices, "-cl-std=CL1.2");
-//	checkErr(err, "building program");
-//
-//	// new and improved build errors lmao
-//	printf("%s\n", program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device).c_str());
-//
-//	// make 3D array
-//	cuint array_width = _WIDTH;
-//	cuint array_height = _HEIGHT;
-//	cuint array_depth = _DEPTH;
-//	cuint array_size = array_width * array_depth * array_height;
-//
-//	std::vector<int> vec(array_size);
-//	std::fill(vec.begin(), vec.end(), 1);
-//
-//	// 3D chunky boii
-//	int chunkSize_width = _WIDTH / nchunks[0];
-//	int chunkSize_height = _HEIGHT / nchunks[1];
-//	int chunkSize_depth = _DEPTH / nchunks[2];
-//
+
 //	// force chunksize to fit in memory
 //	// if the selected chunk is not a factor of our array
 //	// there will not be enough free memory in device.
 //	// force chunk size to be cube and remainder
-//	int factored_chunk = (_WIDTH * _HEIGHT * _DEPTH) % (chunkSize_width * chunkSize_height * chunkSize_depth);
-//	if (factored_chunk != 0)
-//	{
-//		chunkSize_width = chunkSize_depth = chunkSize_height = factored_chunk;
-//	}
-//
-//	// perform chunking function
-//	vec = chunkWork3D(context, program, device, &vec, 2, chunkSize_width, chunkSize_height, chunkSize_depth, err);
-//
-//	for (auto &i : vec)
-//	{
-//		printf("%d", i);
-//	}
-//
-//	printf("\n");
-//	cl::finish();
-//
-//	return 0;
-//}
-//
-//struct OpenCLBody
+
 ///*
 //	* TODO:
 //	*
@@ -380,62 +304,6 @@
 //	* platform info to find id for device, and pass that in for choice in device selection
 //	*/
 //{
-//	// create platform to accommodate for devices
-//	std::vector<cl::Platform> platforms;
-//
-//	// get GPU devices
-//	std::vector<cl::Device> devices;
-//
-//	// get path to kernel file
-//	std::string kernel_source = "";
-//
-//	// context for device, this should be public to the struct?
-//	cl::Context context;
-//
-//	OpenCLBody(std::vector<cl::Platform> platforms_, std::vector<cl::Device> devices_, std::string kernel_source_)
-//		: platforms(platforms_), devices(devices_), kernel_source(kernel_source_)
-//	{
-//		// create platform to accommodate for devices
-//		cl::Platform::get(&platforms);
-//		// select GPU here I think?
-//		cl::Platform platform = platforms.back();
-//
-//		// get GPU devices
-//		auto err = platform.getDevices(CL_DEVICE_TYPE_GPU, &devices);
-//		checkErr(err, "getting GPU devices");
-//
-//		auto &device = devices.front();
-//		printf("%s\n", device.getInfo<CL_DEVICE_NAME>().c_str());
-//
-//		// create context from device
-//		cl::Context context(device);
-//
-//		// read in kernel file as source
-//		std::ifstream kernelFile(kernel_source);
-//		std::string src(std::istreambuf_iterator<char>(kernelFile), (std::istreambuf_iterator<char>()));
-//		const cl::Program::Sources sources(1, std::make_pair(src.c_str(), src.size() + 1));
-//
-//		// create program from both context, and source
-//		cl::Program program(context, sources);
-//		err = program.build(devices, "-cl-std=CL1.2");
-//		checkErr(err, "building program");
-//	}
-//
-//	~OpenCLBody()
-//	{
-//		cl_int clReleaseContext(cl_context context);
-//		cl::finish();
-//	}
-//
-//	void checkErr(cl_int err, const char *name)
-//	{
-//		if (err != CL_SUCCESS)
-//		{
-//			std::cerr << "ERROR: " << name << " (" << err << ")" << std::endl;
-//			//exit(EXIT_FAILURE);
-//		}
-//	}
-//};
 
 //int main()
 //{
@@ -515,7 +383,7 @@ int main()
 	OCL ocl;
 
 	// init kernel
-	ocl.init();
+	ocl.init(1,0);
 
 	// execute chunk?
 	ocl.run();
