@@ -306,33 +306,29 @@ OCL::OCL()
 		{
 			printf("platform[%d]: %s\n", i, p.getInfo<CL_PLATFORM_NAME>().c_str());
 			i++;
+
+			auto err = p.getDevices(CL_DEVICE_TYPE_GPU, &devices);
+
+			// list devices for each platform
+			checkErr(err, "Error: Device probably unsupported by OpenCl.");
+			{
+				int j = 0;
+				for (auto& d : devices)
+				{
+					printf("\t- devices[%d]: %s\n", j, d.getInfo<CL_DEVICE_NAME>().c_str());
+					j++;
+				}
 		}
 	}
 
-	// get GPU devices; could also CPU with CL_DEVICE_TYPE_CPU
-	auto err = platform.getDevices(CL_DEVICE_TYPE_GPU, &devices);
-	if (checkErr(err, "GPU not found, trying again..."))
-	{
-		platform = platforms.back();
-		auto err = platform.getDevices(CL_DEVICE_TYPE_GPU, &devices);
-		checkErr(err, "trouble with getting GPU devices. :(");
-	}
-	
-
-	// list devices
-	{
-		int i = 0;
-		for (auto& d : devices)
-		{
-			printf("devices[%d]: %s\n", i, d.getInfo<CL_DEVICE_NAME>().c_str());
-			i++;
-		}
 	}
 }
 
 OCL::~OCL()
 {
-
+	// should probs do something
+	// but cl.h seems to have something for it already?
+	// another time perhaps
 }
 
 struct data_struct
@@ -350,6 +346,8 @@ struct data_struct
 
 void OCL::init(int platform_id, int device_id)
 {
+	printf("\n\n");
+
 	// create platform to accommodate for devices
 	err = cl::Platform::get(&platforms);
 	checkErr(err, "trouble with acquring platform data. :(");
@@ -475,14 +473,14 @@ void OCL::run()
 		int y = temp_index % dataToUse._HEIGHT;
 		int z = temp_index / dataToUse._HEIGHT;
 
-		int i2 = i + chunkSize;
+		//int i2 = i + chunkSize;
 
-		int x1 = i2 % dataToUse._WIDTH;
-		int temp_index2 = i2 / dataToUse._WIDTH;
-		int y1 = temp_index2 % dataToUse._HEIGHT;
-		int z1 = temp_index2 / dataToUse._HEIGHT;
+		//int x1 = i2 % dataToUse._WIDTH;
+		//int temp_index2 = i2 / dataToUse._WIDTH;
+		//int y1 = temp_index2 % dataToUse._HEIGHT;
+		//int z1 = temp_index2 / dataToUse._HEIGHT;
 
-		printf("i: %d | (%d, %d, %d) -> (%d, %d, %d)\n", i2, x, y, z, x1, y1, z1);
+		// printf("i: %d | (%d, %d, %d) -> (%d, %d, %d)\n", i2, x, y, z, x1, y1, z1);
 
 		// fill in args of the user made kernel func in .cl
 		oclBode.kernel.setArg(0, inBuf);
