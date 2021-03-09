@@ -46,9 +46,9 @@ public:
 		int _DEPTH = 30;
 
 		// 3D chunky boii
-		int chunk_x = 10;
-		int chunk_y = 10;
-		int chunk_z = 10;
+		int chunk_x = 5;
+		int chunk_y = 5;
+		int chunk_z = 5;
 	};
 
 private:
