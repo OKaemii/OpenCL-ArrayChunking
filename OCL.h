@@ -10,7 +10,6 @@
 class OCL
 {
 public:
-
 	// entire array body to work with
 	std::vector<int> arrMainBody;
 
@@ -36,14 +35,6 @@ public:
 	* frees OpenCL objects, and frees device memory
 	*/
 	~OCL();
-
-	/*
-	* program source code for kernel
-	* loads an OpenCL program from a file
-	* cl source code from oath
-	*/
-	cl::Program useProgram(std::string path);
-
 
 	/*
 	* initialise data for kernel

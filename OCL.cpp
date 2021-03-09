@@ -259,9 +259,18 @@ void OCL::checkErr(cl_int err, const char* name)
 	}
 }
 
+// context menu
+cl::Context context;
+
+// something here
+cl::Program program;
+
+// our super kernel
+cl::Kernel kernel;
+
 OCL::OCL()
 {
-	printf("OpenCL 1.2 Object, run init().\n");
+	printf("OpenCL 1.2 Object.\n");
 
 	// create platform to accommodate for devices
 	err = cl::Platform::get(&platforms);
@@ -327,6 +336,11 @@ OCL::~OCL()
 
 void OCL::init()
 {
+
+}
+
+void OCL::run()
+{
 	printf("initialising...\n");
 
 	// read in kernel file as source
@@ -353,19 +367,16 @@ void OCL::init()
 	_DEPTH = 30;
 
 	// 3D chunky boii
-	chunk_x = 15;
-	chunk_y = 15;
-	chunk_z = 15;
+	chunk_x = 10;
+	chunk_y = 10;
+	chunk_z = 10;
 
 	const int array_size = _WIDTH * _DEPTH * _HEIGHT;
 
 	// fill array main body
 	std::vector<int> arrMainBody(array_size);
 	std::fill(arrMainBody.begin(), arrMainBody.end(), 1);
-}
 
-void OCL::run()
-{
 	int halo = 0;
 	int vecSize = arrMainBody.size();
 	int chunkSize = chunk_x * chunk_y * chunk_z;
@@ -375,10 +386,6 @@ void OCL::run()
 	std::vector<int>::const_iterator ending_index;
 
 	printf("chunksize = %d\n", chunkSize);
-
-	int x = 0;
-	int y = 0;
-	int z = 0;
 
 	int progress = 0;
 	printf("size of array to chunk: %d\n", arrMainBody.size());

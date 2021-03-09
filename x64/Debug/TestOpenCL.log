@@ -5,8 +5,8 @@ C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\OCL.cpp(258,10): w
           [
               _Ty=std::string
           ]
-C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\OCL.cpp(370,34): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\OCL.cpp(384,9): warning C4477: 'printf' : format string '%d' requires an argument of type 'int', but variadic argument 1 has type 'unsigned __int64'
-C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\OCL.cpp(384,9): message : consider using '%zd' in the format string
-C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\OCL.cpp(416,63): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\OCL.cpp(381,34): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\OCL.cpp(391,9): warning C4477: 'printf' : format string '%d' requires an argument of type 'int', but variadic argument 1 has type 'unsigned __int64'
+C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\OCL.cpp(391,9): message : consider using '%zd' in the format string
+C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\OCL.cpp(423,63): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
   TestOpenCL.vcxproj -> C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\x64\Debug\TestOpenCL.exe
