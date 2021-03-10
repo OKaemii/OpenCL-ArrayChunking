@@ -376,9 +376,12 @@
 //}
 
 #include "OCL.h"
+// #include <numeric>
 
 int main(int argc, char** argv)
 {
+	OCL::data_struct dataToUse;
+
 	// init OCL object
 	OCL ocl;
 
@@ -390,6 +393,9 @@ int main(int argc, char** argv)
 
 	// execute chunk?
 	ocl.run();
+
+	// std::vector<int> vec(dataToUse._WIDTH * dataToUse._HEIGHT * dataToUse._DEPTH);
+	// std::iota(std::begin(vec), std::end(vec), 0);
 
 	return 0;
 }

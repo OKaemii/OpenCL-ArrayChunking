@@ -6,16 +6,19 @@
 
 void calcTop(__global int* data, __global int* outData)
 {
+	printf("");
 	outData[get_global_id(0)] = data[get_global_id(0)] * 3;
 }
 
 void calcMid(__global int* data, __global int* outData)
 {
+	printf("");
 	outData[get_global_id(0)] = data[get_global_id(0)] * 0;
 }
 
 void calcBot(__global int* data, __global int* outData)
 {
+	printf("");
 	outData[get_global_id(0)] = data[get_global_id(0)] * 7;
 }
 
@@ -58,12 +61,8 @@ bool doesIntersect(int x0, int y0, int z0, int w0, int h0, int d0, int x1, int y
 //
 // takes in boundaries of selected chunk, and points to the correct calculation
 //
-__kernel void doofus(__global int* data, __global int* outData, int index, int chunkSize, int halo)
+__kernel void doofus(__global int* data, __global int* outData, int max_x, int max_y, int max_z, int x_offset, int y_offset, int z_offset)
 {
-	// co-ordinates of current index
-	int global_id = get_global_id(0);
-
-	int temp_index = index / _WIDTH;
 	// boundary conditions
 	// top boundary
 	int top_aMinX = 0;
@@ -101,25 +100,29 @@ __kernel void doofus(__global int* data, __global int* outData, int index, int c
 	* for a function that calls regardless of boundary, need no check
 	*/
 
+	// co-ordinates of current index
 	// map global array index to local array id
-	int id = index + global_id;
+	int id = get_global_id(0);
 
 	// find index of co-ordinates (x0, y0, z0)
-	int loc_x = id % _WIDTH;
-	int loc_index = id / _WIDTH;
-	int loc_y = loc_index % _HEIGHT;
-	int loc_z = loc_index / _HEIGHT;
+	int loc_x = (id % max_x) + x_offset;
+	int loc_index = id / max_x;
+	int loc_y = (loc_index % max_y) + y_offset;
+	int loc_z = (loc_index / max_y) + z_offset;
 	
 	if (doesIntersect(top_aMinX, top_aMinY, top_aMinZ, top_aMaxX, top_aMaxY, top_aMaxZ, loc_x, loc_y, loc_z, 2, 2, 2))
 	{
+		printf("top coordinates: (%d, %d, %d) @%d\n", loc_x, loc_y, loc_z, id);
 		calcTop(data, outData);
 	}
 	if (doesIntersect(mid_aMinX, mid_aMinY, mid_aMinZ, mid_aMaxX, mid_aMaxY, mid_aMaxZ, loc_x, loc_y, loc_z, 2, 2, 2))
 	{
+		printf("mid coordinates: (%d, %d, %d) @%d\n", loc_x, loc_y, loc_z, id);
 		calcMid(data, outData);
 	}
 	if (doesIntersect(bot_aMinX, bot_aMinY, bot_aMinZ, bot_aMaxX, bot_aMaxY, bot_aMaxZ, loc_x, loc_y, loc_z, 2, 2, 2))
 	{
+		printf("bot coordinates: (%d, %d, %d) @%d\n", loc_x, loc_y, loc_z, id);
 		calcBot(data, outData);
 	}
 }

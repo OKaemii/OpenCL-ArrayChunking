@@ -169,72 +169,57 @@ void OCL::run()
 	// fill array main body
 	std::fill(arrMainBody.begin(), arrMainBody.end(), 1);
 
-	int halo = 0;
-	int vecSize = arrMainBody.size();
-	int chunkSize = dataToUse.chunk_x * dataToUse.chunk_y * dataToUse.chunk_z;
-
-	// for halo subarrays
-	std::vector<int>::const_iterator starting_index;
-	std::vector<int>::const_iterator ending_index;
-
-	printf("chunksize = %d\n", chunkSize);
-
-	int progress = 0;
-	printf("size of array to chunk: %d\n", arrMainBody.size());
-	// initial point to start of our vector
-	for (int i = 0; i < arrMainBody.size(); i += chunkSize)
+	// assumuing shape to be square (big assumption)
+	for (int current_chunk = 0; current_chunk < dataToUse._WIDTH; current_chunk+=dataToUse.chunk_x) 
 	{
-		// find start and end positions to send
-		int halo_range_left = i - halo;
-		int halo_range_right = (i + chunkSize) + halo;
+		std::vector<int> chunkedBody(dataToUse.chunk_x * dataToUse.chunk_y * dataToUse.chunk_z);
+		int i = 0;
 
-		std::vector<int> left_attachment;
-		std::vector<int> right_attachment;
-		std::vector<int>::const_iterator starting_index;
-		std::vector<int>::const_iterator ending_index;
+		// offset to get correct coordinate mapping from chunk to main bode
+		int x_offset = current_chunk;
+		int y_offset = current_chunk;
+		int z_offset = current_chunk;
 
-		// it needs to get other boundary
-		if (halo_range_left < 0)
+		// go through depth data
+		for (int z = current_chunk; z < dataToUse.chunk_z+current_chunk; z++) 
 		{
-			left_attachment.insert(left_attachment.begin(), arrMainBody.end() + halo_range_left, arrMainBody.end());
-			halo_range_left = 0;
+			// go through height
+			for (int y = current_chunk; y < dataToUse.chunk_y + current_chunk; y ++)
+			{
+				// go through width
+				for (int x = current_chunk; x < dataToUse.chunk_x + current_chunk; x ++)
+				{
+					// get starting index of data location
+					int index = x + dataToUse._WIDTH * (y + dataToUse._HEIGHT * z);
+					// map chunked location to main body
+					chunkedBody.data()[i] = arrMainBody.data()[index];
+					i++;
+				}
+			}
 		}
-		if (halo_range_right > vecSize)
-		{
-			right_attachment.insert(right_attachment.begin(), arrMainBody.begin(), arrMainBody.begin() + (halo_range_right - vecSize));
-			halo_range_right = vecSize;
-		}
-		starting_index = arrMainBody.begin() + halo_range_left;
-		ending_index = arrMainBody.begin() + halo_range_right;
-		std::vector<int> vectorToEvaluate(starting_index, ending_index);
 
-		// append out of bound vectors if any
-		vectorToEvaluate.insert(vectorToEvaluate.begin(), left_attachment.begin(), left_attachment.end());
-		vectorToEvaluate.insert(vectorToEvaluate.end(), right_attachment.begin(), right_attachment.end());
-
-		int sizeofDataToPass = sizeof(int) * vectorToEvaluate.size();
+		int sizeofDataToPass = dataToUse.chunk_x * dataToUse.chunk_y * dataToUse.chunk_z;
 
 		// create buffers, and kernel
-		cl::Buffer inBuf(oclBode.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, sizeofDataToPass, &vectorToEvaluate.data()[0]);
+		cl::Buffer inBuf(oclBode.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, sizeofDataToPass, &chunkedBody.data()[0]);
 		cl::Buffer outBuf(oclBode.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, sizeofDataToPass, nullptr);
-
-		int x = i % dataToUse._WIDTH;
-		int temp_index = i / dataToUse._WIDTH;
-		int y = temp_index % dataToUse._HEIGHT;
-		int z = temp_index / dataToUse._HEIGHT;
 
 		// fill in args of the user made kernel func in .cl
 		oclBode.kernel.setArg(0, inBuf);
 		oclBode.kernel.setArg(1, outBuf);
 
-		oclBode.kernel.setArg(2, i);
-		oclBode.kernel.setArg(3, chunkSize);
-		oclBode.kernel.setArg(4, halo);
+		oclBode.kernel.setArg(2, dataToUse.chunk_x);
+		oclBode.kernel.setArg(3, dataToUse.chunk_y);
+		oclBode.kernel.setArg(4, dataToUse.chunk_z);
+
+		oclBode.kernel.setArg(5, x_offset);
+		oclBode.kernel.setArg(6, y_offset);
+		oclBode.kernel.setArg(7, z_offset);
 
 		cl_event wait;
 		cl_int status;
 
-#pragma warning(disable : 4996)
+		#pragma warning(disable : 4996)
 		status = clEnqueueMarker(oclBode.queue(), &wait);
 		if (status != CL_SUCCESS)
 		{
@@ -254,21 +239,43 @@ void OCL::run()
 
 		// reads from GPU data from where it was set to based on NDRangeK
 		// get data from device, and work on buffer
-		err = oclBode.queue.enqueueReadBuffer(outBuf, CL_FALSE, 0, sizeofDataToPass, &vectorToEvaluate.data()[0]);
+		err = oclBode.queue.enqueueReadBuffer(outBuf, CL_FALSE, 0, sizeofDataToPass, &chunkedBody.data()[0]);
 		checkErr(err, "Reading buffer...");
 
-		// we only want the non halo part
-		std::copy(vectorToEvaluate.begin() + halo, vectorToEvaluate.begin() + halo + chunkSize, arrMainBody.begin() + i);
+		printf("received\n");
+		for (auto& i : chunkedBody)
+		{
+			printf("%d", i);
+		}
 
 
-		progress += chunkSize;
+		// we want to take this 3d array, and put it back to where it belongs in our main body
+		// go through depth data
+		i = 0;
+		for (int z = 0; z < dataToUse.chunk_z; z++)
+		{
+			// go through height
+			for (int y = 0; y < dataToUse.chunk_y; y++)
+			{
+				// go through width
+				for (int x = 0; x < dataToUse.chunk_x; x++)
+				{
+					// get starting index of data location
+					int index = (x+x_offset) + dataToUse._WIDTH * ((y+y_offset) + dataToUse._HEIGHT * (z+z_offset));
+					// map chunked location to main body
+					arrMainBody.data()[index] = chunkedBody.data()[i];
+					i++;
+				}
+			}
+		}
+
+		for (auto& i : arrMainBody)
+		{
+			printf("%d", i);
+		}
+
+		printf("\n");
+		cl::finish();
+
 	}
-
-	for (auto& i : arrMainBody)
-	{
-		printf("%d", i);
-	}
-
-	printf("\n");
-	cl::finish();
 }
