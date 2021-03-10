@@ -377,13 +377,16 @@
 
 #include "OCL.h"
 
-int main()
+int main(int argc, char** argv)
 {
 	// init OCL object
 	OCL ocl;
 
+	int platform_id=1;
+	int device_id=0;
+
 	// init kernel
-	ocl.init(1,0);
+	ocl.init(platform_id, device_id);
 
 	// execute chunk?
 	ocl.run();
