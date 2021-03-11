@@ -201,10 +201,11 @@ void OCL::run()
 		}
 	}
 
-	int sizeofDataToPass = dataToUse.chunk_x * dataToUse.chunk_y * dataToUse.chunk_z;
+	int sizeofDataToPass = chunkedBody.size();
+	printf("size: %d\n", chunkedBody.size());
 
 	// create buffers, and kernel
-	cl::Buffer inBuf(oclBode.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, sizeofDataToPass, &chunkedBody.data()[0]);
+	cl::Buffer inBuf(oclBode.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, sizeofDataToPass, &chunkedBody[0]);
 	cl::Buffer outBuf(oclBode.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, sizeofDataToPass, nullptr);
 
 	// fill in args of the user made kernel func in .cl
@@ -219,38 +220,42 @@ void OCL::run()
 	oclBode.kernel.setArg(6, y_offset);
 	oclBode.kernel.setArg(7, z_offset);
 
-	cl_event wait;
+	cl::Event event;
 	cl_int status;
 
-#pragma warning(disable : 4996)
-	status = clEnqueueMarker(oclBode.queue(), &wait);
-	if (status != CL_SUCCESS)
-	{
-		printf("Enqueue marker failed...\n");
-	}
-
 	// sets up where we to read the finished GPU data
-	err = oclBode.queue.enqueueNDRangeKernel(oclBode.kernel, cl::NullRange, cl::NDRange(sizeofDataToPass)); // global, local range here
+	err = oclBode.queue.enqueueNDRangeKernel(oclBode.kernel, cl::NullRange, cl::NDRange(sizeofDataToPass), cl::NullRange, nullptr, &event); // global, local range here
 	checkErr(err, "ND Range kernel execution");
 
-	// block until everything is done
-	status = clWaitForEvents(1, &wait);
-	if (status != CL_SUCCESS)
-	{
-		printf("Wait failed?\n");
-	}
+//#pragma warning(disable : 4996)
+//	status = clEnqueueMarker(oclBode.queue(), &wait);
+//	if (status != CL_SUCCESS)
+//	{
+//		printf("Enqueue marker failed...\n");
+//	}
+
+	// NDRange has no CL_True, so make wait event to block everything until done
+	event.wait();
 
 	// reads from GPU data from where it was set to based on NDRangeK
 	// get data from device, and work on buffer
-	err = oclBode.queue.enqueueReadBuffer(outBuf, CL_FALSE, 0, sizeofDataToPass, &chunkedBody.data()[0]);
+	// CL_TRUE block until everything is done
+	err = oclBode.queue.enqueueReadBuffer(outBuf, CL_TRUE, 0, sizeofDataToPass, &chunkedBody[0]);
 	checkErr(err, "Reading buffer...");
+
+	
+	//status = clWaitForEvents(1, wait.wait());
+	//if (status != CL_SUCCESS)
+	//{
+	//	printf("Wait failed?\n");
+	//}
 
 	printf("received from buffer\n");
 	for (auto& i : chunkedBody)
 	{
 		printf("%d", i);
 	}
-	printf("end of stream\n\n");
+	printf("\nend of stream\n\n");
 
 
 	// we want to take this 3d array, and put it back to where it belongs in our main body

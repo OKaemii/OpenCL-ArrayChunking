@@ -109,17 +109,19 @@ __kernel void doofus(__global int* data, __global int* outData, int max_x, int m
 	
 	if (doesIntersect(top_aMinX, top_aMinY, top_aMinZ, top_aMaxX, top_aMaxY, top_aMaxZ, loc_x, loc_y, loc_z, 2, 2, 2))
 	{
-		// printf("top coordinates: (%d, %d, %d) @%d\n", loc_x, loc_y, loc_z, id);
+		//printf("top coordinates: (%d, %d, %d) @%d\n", loc_x, loc_y, loc_z, id);
 		calcTop(data, outData);
 	}
 	if (doesIntersect(mid_aMinX, mid_aMinY, mid_aMinZ, mid_aMaxX, mid_aMaxY, mid_aMaxZ, loc_x, loc_y, loc_z, 2, 2, 2))
 	{
-		// printf("mid coordinates: (%d, %d, %d) @%d\n", loc_x, loc_y, loc_z, id);
-		calcMid(data, outData);
+		//printf("mid coordinates: (%d, %d, %d) @%d\n", loc_x, loc_y, loc_z, id);
+		//calcMid(data, outData);
 	}
 	if (doesIntersect(bot_aMinX, bot_aMinY, bot_aMinZ, bot_aMaxX, bot_aMaxY, bot_aMaxZ, loc_x, loc_y, loc_z, 2, 2, 2))
 	{
-		// printf("bot coordinates: (%d, %d, %d) @%d\n", loc_x, loc_y, loc_z, id);
-		calcBot(data, outData);
+		//printf("bot coordinates: (%d, %d, %d) @%d\n", loc_x, loc_y, loc_z, id);
+		//calcBot(data, outData);
 	}
+
+	//outData[id] = id;
 }
