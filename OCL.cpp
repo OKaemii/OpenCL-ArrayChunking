@@ -42,9 +42,9 @@ struct ocl_body
 struct data_struct
 {
 	// make 3D array
-	int _WIDTH = 30;
-	int _HEIGHT = 30;
-	int _DEPTH = 30;
+	int _WIDTH = 4;
+	int _HEIGHT = 4;
+	int _DEPTH = 4;
 };
 
 // struct to contain OpenCL kernels, program, contect, etc.
@@ -206,13 +206,7 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z, int halo)
 	int y_chunk_haloed = y_chunk + halo_size;
 	int z_chunk_haloed = z_chunk + halo_size;
 
-	// make sure all these chunks to be are whole numbers only, if not, do not chunk
-	if ((dataToUse._WIDTH % chunkSlice_x == 0) && (dataToUse._HEIGHT % chunkSlice_y == 0) && (dataToUse._DEPTH % chunkSlice_z == 0))
-	{
-		x_chunk = dataToUse._WIDTH;
-		y_chunk = dataToUse._HEIGHT;
-		z_chunk = dataToUse._DEPTH;
-	}
+	// TODO:: make sure all these chunks to be are whole numbers only, if not, do not chunk
 
 	// get the first co-ordinates of every chunk
 	for (int z_offset = 0; z_offset < dataToUse._DEPTH; z_offset += z_chunk)
@@ -293,19 +287,19 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z, int halo)
 				checkErr(err, "Reading buffer...");
 
 				// map result from device back to host side main haloed body
-				// index for the device side chunk
-				int device_index = 0;
 				for (int z = halo; z < z_chunk_haloed - halo; z++)
 				{
 					for (int y = halo; y < y_chunk_haloed - halo; y++)
 					{
-						for (int x = halo; x < x_chunk_haloed; x++)
+						for (int x = halo; x < x_chunk_haloed - halo; x++)
 						{
 							// where in our main body haloed array is our chunk is
 							int index = (x + x_offset) + haloed_width * ((y + y_offset) + haloed_height * (z + z_offset));
 
+							// index for the device side chunk
+							int device_index = x + x_chunk_haloed * (y + y_chunk_haloed * x);
+
 							haloed_arrMainBody[index] = backBuff[device_index];
-							device_index++;
 						}
 					}
 				}

@@ -1,8 +1,5 @@
 ﻿  OCL.cpp
-C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\OCL.cpp(249,46): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\OCL.cpp(250,67): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\OCL.cpp(279,12): warning C4101: 'status': unreferenced local variable
-  Test.cpp
-C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\Test.cpp(384,19): warning C4101: 'dataToUse': unreferenced local variable
-  Generating Code...
+C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\OCL.cpp(243,46): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\OCL.cpp(244,67): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\OCL.cpp(273,12): warning C4101: 'status': unreferenced local variable
   TestOpenCL.vcxproj -> C:\Users\O Kamii\Documents\_projects\cpp\OpenCL-ArrayChunking\x64\Debug\TestOpenCL.exe
