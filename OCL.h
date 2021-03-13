@@ -44,9 +44,9 @@ public:
 	struct data_struct
 	{
 		// make 3D array
-		int _WIDTH = 30;
-		int _HEIGHT = 30;
-		int _DEPTH = 30;
+		int _WIDTH;
+		int _HEIGHT;
+		int _DEPTH;
 	};
 
 private:

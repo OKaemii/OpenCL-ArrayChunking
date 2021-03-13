@@ -101,23 +101,26 @@ __kernel void doofus(__global int* data, __global int* outData, int max_x, int m
 	int loc_y = (loc_index % max_y) + y_offset;
 	int loc_z = (loc_index / max_y) + z_offset;
 
-	// printf("DEVICE:: (%d, %d, %d) [%d, %d]\n", loc_x, loc_y, loc_z, id, chunkedArrayDevice.size());
 	
 	if (doesIntersect(top_aMinX, top_aMinY, top_aMinZ, top_aMaxX, top_aMaxY, top_aMaxZ, loc_x, loc_y, loc_z, 2, 2, 2))
 	{
 		//printf("top coordinates: (%d, %d, %d) @%d\n", loc_x, loc_y, loc_z, id);
 		calcTop(data, outData);
+		return;
 	}
 	if (doesIntersect(mid_aMinX, mid_aMinY, mid_aMinZ, mid_aMaxX, mid_aMaxY, mid_aMaxZ, loc_x, loc_y, loc_z, 2, 2, 2))
 	{
 		//printf("mid coordinates: (%d, %d, %d) @%d\n", loc_x, loc_y, loc_z, id);
 		calcMid(data, outData);
+		return;
 	}
 	if (doesIntersect(bot_aMinX, bot_aMinY, bot_aMinZ, bot_aMaxX, bot_aMaxY, bot_aMaxZ, loc_x, loc_y, loc_z, 2, 2, 2))
 	{
 		//printf("bot coordinates: (%d, %d, %d) @%d\n", loc_x, loc_y, loc_z, id);
 		calcBot(data, outData);
+		return;
 	}
 
-	// outData[id] = id;
+	// something went wrong error
+	outData[id] = 9;
 }

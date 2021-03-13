@@ -39,8 +39,19 @@ struct ocl_body
 	cl_int err;
 };
 
+struct data_struct
+{
+	// make 3D array
+	int _WIDTH = 30;
+	int _HEIGHT = 30;
+	int _DEPTH = 30;
+};
+
+// struct to contain OpenCL kernels, program, contect, etc.
 ocl_body oclBode;
 
+// struct to contain dimension of main array
+data_struct dataToUse;
 
 OCL::OCL()
 {
@@ -81,19 +92,6 @@ OCL::~OCL()
 	// another time perhaps
 }
 
-struct data_struct
-{
-	// make 3D array
-	int _WIDTH = 30;
-	int _HEIGHT = 30;
-	int _DEPTH = 30;
-
-	// 3D chunky boii
-	int chunk_x = 10;
-	int chunk_y = 10;
-	int chunk_z = 10;
-};
-
 void OCL::init(int platform_id, int device_id)
 {
 	printf("\n\n");
@@ -125,7 +123,6 @@ void OCL::init(int platform_id, int device_id)
 	// command queue to use for OpenCL command executions
 	try
 	{
-		//queue = cl::CommandQueue(context, devices[device_id], 0, &err);
 		cl::CommandQueue queue = cl::CommandQueue(context, device, 0, &err);
 		oclBode.queue = queue;
 	}
@@ -136,6 +133,7 @@ void OCL::init(int platform_id, int device_id)
 
 
 	printf("initialising...\n");
+
 	// read in kernel file as source
 	std::ifstream kernelFile("ProcArray.cl");
 	std::string src(std::istreambuf_iterator<char>(kernelFile), (std::istreambuf_iterator<char>()));
@@ -151,7 +149,6 @@ void OCL::init(int platform_id, int device_id)
 	// new and improved build errors
 	printf("%s\n", oclBode.program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device).c_str());
 
-	printf("Program built successfully!\n");
 	std::cout << "Build Status:\t " << oclBode.program.getBuildInfo<CL_PROGRAM_BUILD_STATUS>(devices[device_id]) << std::endl;
 	std::cout << "Build Options:\t " << oclBode.program.getBuildInfo<CL_PROGRAM_BUILD_OPTIONS>(devices[device_id]) << std::endl;
 	std::cout << "Build Log:\t " << oclBode.program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(devices[device_id]) << std::endl;
@@ -163,9 +160,6 @@ void OCL::init(int platform_id, int device_id)
 
 void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z, int halo)
 {
-	// struct to contain dimension of main array
-	data_struct dataToUse;
-
 	std::vector<int> arrMainBody(dataToUse._WIDTH * dataToUse._HEIGHT * dataToUse._DEPTH);
 
 	// fill array main body
@@ -227,7 +221,6 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z, int halo)
 		{
 			for (int x_offset = 0; x_offset < dataToUse._WIDTH; x_offset += x_chunk)
 			{
-				// printf("chunk main body array to send for device\n");
 				// chunk main body array to send for device + haloed
 				std::vector<int> chunkedBody(x_chunk_haloed * y_chunk_haloed * z_chunk_haloed);
 
@@ -241,11 +234,9 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z, int halo)
 					{
 						for (int x = 0; x < x_chunk_haloed; x++)
 						{
-							//printf("HOST:: (%d, %d, %d) [%d/%d]\n", x + chunked_x, y + chunked_y, z + chunked_z, host_index, chunkedArrayHost.size());
 							// index of the haloed main body
 							int index = (x + x_offset) + haloed_width * ((y + y_offset) + haloed_height * (z + z_offset));
 							
-							// printf("trying to access: vec[%d/%d]\n", index, haloed_vec.size());
 							// assign from haloed main ved to chunk body
 							// with coordinates where each chunk starts
 							chunkedBody[host_index] = haloed_arrMainBody[index];
@@ -254,8 +245,7 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z, int halo)
 					}
 				}
 				
-				// printf("\n");
-				//printf("sending to device...\n");
+				// sending to device...
 				int sizeofDataToPass = chunkedBody.size();
 				int sizeofDataToPassinBytes = chunkedBody.size() * sizeof(int);
 
@@ -305,7 +295,6 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z, int halo)
 				// map result from device back to host side main haloed body
 				// index for the device side chunk
 				int device_index = 0;
-				//printf("map chunk to final result\n");
 				for (int z = halo; z < z_chunk_haloed - halo; z++)
 				{
 					for (int y = halo; y < y_chunk_haloed - halo; y++)
@@ -314,7 +303,7 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z, int halo)
 						{
 							// where in our main body haloed array is our chunk is
 							int index = (x + x_offset) + haloed_width * ((y + y_offset) + haloed_height * (z + z_offset));
-							// printf("result[%d/%d] from chunk %d\n", index, result.size(), device_index);
+
 							haloed_arrMainBody[index] = backBuff[device_index];
 							device_index++;
 						}
@@ -330,15 +319,14 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z, int halo)
 	// end cl use
 	cl::finish();
 
-	// printf("output of entire array\n");
 	// output array in sliced fasion
-	int index = 0;
 	for (int z = 0; z < haloed_depth; z++)
 	{
 		for (int y = 0; y < haloed_height; y++)
 		{
 			for (int x = 0; x < haloed_width; x++)
 			{
+				int index = x + haloed_width * (y + haloed_height * z);
 				printf("%d", haloed_arrMainBody[index]);
 				index++;
 			}
