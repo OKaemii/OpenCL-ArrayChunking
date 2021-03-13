@@ -61,25 +61,25 @@ __kernel void doofus(__global int* data, __global int* outData, int max_x, int m
 	int top_aMinZ = 0;
 
 	int top_aMaxX = _WIDTH;
-	int top_aMaxY = (_HEIGHT * 1) / 3;
+	int top_aMaxY = 3;
 	int top_aMaxZ = _DEPTH;
 
 	// middle boundary
 	int mid_aMinX = 0;
-	int mid_aMinY = (_HEIGHT * 1) / 3;
+	int mid_aMinY = 4;
 	int mid_aMinZ = 0;
 
 	int mid_aMaxX = _WIDTH;
-	int mid_aMaxY = (_HEIGHT * 2) / 3;
+	int mid_aMaxY = 6;
 	int mid_aMaxZ = _DEPTH;
 
 	// bottom boundary
 	int bot_aMinX = 0;
-	int bot_aMinY = (_HEIGHT * 2) / 3;
+	int bot_aMinY = 7;
 	int bot_aMinZ = 0;
 
 	int bot_aMaxX = _WIDTH;
-	int bot_aMaxY = _HEIGHT;
+	int bot_aMaxY = 9;
 	int bot_aMaxZ = _DEPTH;
 
 	/*
@@ -102,21 +102,21 @@ __kernel void doofus(__global int* data, __global int* outData, int max_x, int m
 	int loc_z = (loc_index / max_y) + z_offset;
 
 	
-	if (doesIntersect(top_aMinX, top_aMinY, top_aMinZ, top_aMaxX, top_aMaxY, top_aMaxZ, loc_x, loc_y, loc_z, 1, 1, 1))
+	if (doesIntersect(top_aMinX, top_aMinY, top_aMinZ, top_aMaxX, top_aMaxY, top_aMaxZ, loc_x, loc_y, loc_z, 2, 2, 2))
 	{
-		//printf("top coordinates: (%d, %d, %d) @%d\n", loc_x, loc_y, loc_z, id);
+		printf("top coordinates: (%d, %d, %d) @%d\n", loc_x, loc_y, loc_z, id);
 		calcTop(data, outData);
 		return;
 	}
-	if (doesIntersect(mid_aMinX, mid_aMinY, mid_aMinZ, mid_aMaxX, mid_aMaxY, mid_aMaxZ, loc_x, loc_y, loc_z, 1, 1, 1))
+	if (doesIntersect(mid_aMinX, mid_aMinY, mid_aMinZ, mid_aMaxX, mid_aMaxY, mid_aMaxZ, loc_x, loc_y, loc_z, 2, 2, 2))
 	{
-		//printf("mid coordinates: (%d, %d, %d) @%d\n", loc_x, loc_y, loc_z, id);
+		printf("mid coordinates: (%d, %d, %d) @%d\n", loc_x, loc_y, loc_z, id);
 		calcMid(data, outData);
 		return;
 	}
-	if (doesIntersect(bot_aMinX, bot_aMinY, bot_aMinZ, bot_aMaxX, bot_aMaxY, bot_aMaxZ, loc_x, loc_y, loc_z, 1, 1, 1))
+	if (doesIntersect(bot_aMinX, bot_aMinY, bot_aMinZ, bot_aMaxX, bot_aMaxY, bot_aMaxZ, loc_x, loc_y, loc_z, 2, 2, 2))
 	{
-		//printf("bot coordinates: (%d, %d, %d) @%d\n", loc_x, loc_y, loc_z, id);
+		printf("bot coordinates: (%d, %d, %d) @%d\n", loc_x, loc_y, loc_z, id);
 		calcBot(data, outData);
 		return;
 	}

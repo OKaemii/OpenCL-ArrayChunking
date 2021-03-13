@@ -386,14 +386,14 @@ int main(int argc, char** argv)
 	// init OCL object
 	OCL ocl;
 
-	int platform_id=0;
+	int platform_id=1;
 	int device_id=0;
 
 	// init kernel
 	ocl.init(platform_id, device_id);
 
 	// execute chunk?
-	ocl.run(2,2,2, 1);
+	ocl.run(1,1,1, 0);
 
 	return 0;
 }

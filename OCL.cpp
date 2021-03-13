@@ -42,9 +42,9 @@ struct ocl_body
 struct data_struct
 {
 	// make 3D array
-	int _WIDTH = 4;
-	int _HEIGHT = 4;
-	int _DEPTH = 4;
+	int _WIDTH = 10;
+	int _HEIGHT = 10;
+	int _DEPTH = 10;
 };
 
 // struct to contain OpenCL kernels, program, contect, etc.
@@ -197,16 +197,26 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z, int halo)
 	}
 
 	// chunk main array not haloed, to give us cords for where starting haloed chunks will start
-	int x_chunk = dataToUse._WIDTH / chunkSlice_x;
-	int y_chunk = dataToUse._HEIGHT / chunkSlice_y;
-	int z_chunk = dataToUse._DEPTH / chunkSlice_z;
+	int x_chunk = dataToUse._WIDTH;
+	int y_chunk = dataToUse._HEIGHT;
+	int z_chunk = dataToUse._DEPTH;
+
+	// make sure all these chunks to be are whole numbers only, if not, do not chunk
+	if ((dataToUse._WIDTH % chunkSlice_x == 0) && (dataToUse._HEIGHT % chunkSlice_y == 0) && (dataToUse._DEPTH % chunkSlice_z == 0))
+	{
+		x_chunk = dataToUse._WIDTH / chunkSlice_x;
+		y_chunk = dataToUse._HEIGHT / chunkSlice_y;
+		z_chunk = dataToUse._DEPTH / chunkSlice_z;
+
+		chunkSlice_x = chunkSlice_y = chunkSlice_z = 1;
+	}
+
+	printf("using %d chunks.\n",(chunkSlice_x* chunkSlice_y* chunkSlice_z));
 
 	// dimensions for chunked array
 	int x_chunk_haloed = x_chunk + halo_size;
 	int y_chunk_haloed = y_chunk + halo_size;
 	int z_chunk_haloed = z_chunk + halo_size;
-
-	// TODO:: make sure all these chunks to be are whole numbers only, if not, do not chunk
 
 	// get the first co-ordinates of every chunk
 	for (int z_offset = 0; z_offset < dataToUse._DEPTH; z_offset += z_chunk)
