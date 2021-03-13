@@ -30,7 +30,7 @@ public:
 	/*
 	* the bread and butter
 	*/
-	void run();
+	void run(int chunkSlice_x=2, int chunkSlice_y=2, int chunkSlice_z=2, int halo=1);
 
 	// function to return our error info
 	bool checkErr(cl_int err, const char* name);
@@ -38,17 +38,15 @@ public:
 	// entire array body to work with
 	std::vector<int> arrMainBody;
 
+	// entire haloed array body to work with
+	std::vector<int> haloed_arrMainBody;
+
 	struct data_struct
 	{
 		// make 3D array
 		int _WIDTH = 30;
 		int _HEIGHT = 30;
 		int _DEPTH = 30;
-
-		// 3D chunky boii
-		int chunk_x = 5;
-		int chunk_y = 5;
-		int chunk_z = 5;
 	};
 
 private:
