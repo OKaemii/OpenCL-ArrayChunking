@@ -146,6 +146,8 @@
     <ClCompile Include="Test.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="draft-evaluation-kernel.cl" />
+    <None Include="EvalKernel.cl" />
     <None Include="ProcArray.cl" />
   </ItemGroup>
   <ItemGroup>
