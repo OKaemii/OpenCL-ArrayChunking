@@ -14,7 +14,7 @@ public:
 	* default constructor for OpenCL initialisation 
 	* platform, and device are automatically chosen
 	*/
-	OCL();
+	OCL(int width=29, int height=29, int depth=29);
 
 	/*
 	* default constructor's destructor
@@ -36,10 +36,10 @@ public:
 	bool checkErr(cl_int err, const char* name);
 
 	// entire array body to work with
-	std::vector<int> arrMainBody;
+	std::vector<float> arrMainBody;
 
 	// entire haloed array body to work with
-	std::vector<int> haloed_arrMainBody;
+	std::vector<float> haloed_arrMainBody;
 
 	struct data_struct
 	{
@@ -47,7 +47,7 @@ public:
 		int _WIDTH;
 		int _HEIGHT;
 		int _DEPTH;
-	};
+	} dataToUse;
 
 private:
 	struct ocl_body
@@ -75,7 +75,7 @@ private:
 
 		// for error log
 		cl_int err;
-	};
+	} oclBode;
 
 	// list of available platforms
 	std::vector<cl::Platform> platforms;
@@ -91,4 +91,3 @@ private:
 	// for error log
 	cl_int err;
 };
-

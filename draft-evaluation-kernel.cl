@@ -127,3 +127,13 @@ void calc_new_core_values(float* p, float* p_out) {
 
 
 
+// the real world sim has a lot more constraints than the eval kernel, but not problem
+// once machine to chunk, programmer can decide if done on a perfunction basis or a mixture or both
+// depends on the programmer, not my problem, I am showing than chunking works
+// if I do it on this basis, this would be faster, or if this slower
+// if I do whole chunk at once is faster
+// could bandwidth test - the time it takes to send a chunk; receive a chunk (depends on size of chunk)
+// could test it takes a chunk to perform a function
+
+// my work is to show that I can do this chunking, and ability to recognise where it is in the total grid of chunk
+// and then decide to do the boundary condition or not

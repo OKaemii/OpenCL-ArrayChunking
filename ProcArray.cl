@@ -1,19 +1,19 @@
-void calcTop(__global int* data, __global int* outData)
+void calcTop(__global float* data, __global float* outData)
 {
 	outData[get_global_id(0)] = data[get_global_id(0)] * 3;
 }
 
-void calcMid(__global int* data, __global int* outData)
+void calcMid(__global float* data, __global float* outData)
 {
-	outData[get_global_id(0)] = data[get_global_id(0)] * 0;
+	outData[get_global_id(0)] = data[get_global_id(0)] * 1;
 }
 
-void calcBot(__global int* data, __global int* outData)
+void calcBot(__global float* data, __global float* outData)
 {
 	outData[get_global_id(0)] = data[get_global_id(0)] * 7;
 }
 
-bool doesIntersect(int x0, int y0, int z0, int w0, int h0, int d0, int x1, int y1, int z1, int w1, int h1, int d1)
+bool doesIntersect(float x0, float y0, float z0, float w0, float h0, float d0, float x1, float y1, float z1, float w1, float h1, float d1)
 {
 	/*
 	* w,h,z: dimensions of object
@@ -21,29 +21,29 @@ bool doesIntersect(int x0, int y0, int z0, int w0, int h0, int d0, int x1, int y
 	*/
 
 	// Calculate Halves
-	int hw0 = w0 >> 1;
-	int hh0 = h0 >> 1;
-	int hd0 = d0 >> 1;
+	float hw0 = w0 * 0.5;
+	float hh0 = h0 * 0.5;
+	float hd0 = d0 * 0.5;
 
-	int hw1 = w1 >> 1;
-	int hh1 = h1 >> 1;
-	int hd1 = d1 >> 1;
+	float hw1 = w1 * 0.5;
+	float hh1 = h1 * 0.5;
+	float hd1 = d1 * 0.5;
 
 	// Calculate Middle of Boundary
-	int mx = x0 + hw0;
-	int my = y0 + hh0;
-	int mz = z0 + hd0;
+	float mx = x0 + hw0;
+	float my = y0 + hh0;
+	float mz = z0 + hd0;
 
 	// Calculate Middle of Block
-	int bx = x1 + hw1;
-	int by = y1 + hh1;
-	int bz = z1 + hd1;
+	float bx = x1 + hw1;
+	float by = y1 + hh1;
+	float bz = z1 + hd1;
 
 	// Intersection test
 	// Calculate Deltas (centre displacement)
-	int dx = abs(mx - bx);
-	int dy = abs(my - by);
-	int dz = abs(mz - bz);
+	float dx = fabs(mx - bx);
+	float dy = fabs(my - by);
+	float dz = fabs(mz - bz);
 
 	return (hw0 + hw1) > dx && (hh0 + hh1) > dy && (hd0 + hd1) > dz;
 }
@@ -52,35 +52,35 @@ bool doesIntersect(int x0, int y0, int z0, int w0, int h0, int d0, int x1, int y
 //
 // takes in boundaries of selected chunk, and points to the correct calculation
 //
-__kernel void doofus(__global int* data, __global int* outData, int max_x, int max_y, int x_offset, int y_offset, int z_offset, int _WIDTH, int _DEPTH, int _HEIGHT)
+__kernel void doofus(__global float* data, __global float* outData, int max_x, int max_y, int x_offset, int y_offset, int z_offset, int _WIDTH, int _DEPTH, int _HEIGHT)
 {
 	// boundary conditions
 	// top boundary
-	int top_aMinX = 0;
-	int top_aMinY = 0;
-	int top_aMinZ = 0;
+	float top_aMinX = 0.f;
+	float top_aMinY = 0.f;
+	float top_aMinZ = 0.f;
 
-	int top_aMaxX = _WIDTH;
-	int top_aMaxY = 3;
-	int top_aMaxZ = _DEPTH;
+	float top_aMaxX = (float) _WIDTH;
+	float top_aMaxY = 0.333f * (float)_HEIGHT;
+	float top_aMaxZ = (float) _DEPTH;
 
 	// middle boundary
-	int mid_aMinX = 0;
-	int mid_aMinY = 4;
-	int mid_aMinZ = 0;
+	float mid_aMinX = 0.f;
+	float mid_aMinY = top_aMaxY;
+	float mid_aMinZ = 0.f;
 
-	int mid_aMaxX = _WIDTH;
-	int mid_aMaxY = 6;
-	int mid_aMaxZ = _DEPTH;
+	float mid_aMaxX = (float) _WIDTH;
+	float mid_aMaxY = 0.666f * (float)_HEIGHT;
+	float mid_aMaxZ = (float) _DEPTH;
 
 	// bottom boundary
-	int bot_aMinX = 0;
-	int bot_aMinY = 7;
-	int bot_aMinZ = 0;
+	float bot_aMinX = 0.f;
+	float bot_aMinY = mid_aMaxY;
+	float bot_aMinZ = 0.f;
 
-	int bot_aMaxX = _WIDTH;
-	int bot_aMaxY = 9;
-	int bot_aMaxZ = _DEPTH;
+	float bot_aMaxX = (float)_WIDTH;
+	float bot_aMaxY = (float)_HEIGHT;
+	float bot_aMaxZ = (float)_DEPTH;
 
 	/*
 	* TODO:
@@ -96,29 +96,26 @@ __kernel void doofus(__global int* data, __global int* outData, int max_x, int m
 	int id = get_global_id(0);
 
 	// find index of co-ordinates (x0, y0, z0)
-	int loc_x = (id % max_x) + x_offset;
+	float loc_x = (id % max_x) + x_offset;
 	int loc_index = id / max_x;
-	int loc_y = (loc_index % max_y) + y_offset;
-	int loc_z = (loc_index / max_y) + z_offset;
+	float loc_y = (loc_index % max_y) + y_offset;
+	float loc_z = (loc_index / max_y) + z_offset;
 
 	
-	if (doesIntersect(top_aMinX, top_aMinY, top_aMinZ, top_aMaxX, top_aMaxY, top_aMaxZ, loc_x, loc_y, loc_z, 2, 2, 2))
+	if (doesIntersect(top_aMinX, top_aMinY, top_aMinZ, top_aMaxX, top_aMaxY, top_aMaxZ, loc_x, loc_y, loc_z, 0.9f, 0.9f, 0.9f))
 	{
-		printf("top coordinates: (%d, %d, %d) @%d\n", loc_x, loc_y, loc_z, id);
+		//printf("top coordinates: (%f, %f, %f) @%d\n", loc_x, loc_y, loc_z, id);
 		calcTop(data, outData);
-		return;
 	}
-	if (doesIntersect(mid_aMinX, mid_aMinY, mid_aMinZ, mid_aMaxX, mid_aMaxY, mid_aMaxZ, loc_x, loc_y, loc_z, 2, 2, 2))
+	if (doesIntersect(mid_aMinX, mid_aMinY, mid_aMinZ, mid_aMaxX, mid_aMaxY, mid_aMaxZ, loc_x, loc_y, loc_z, 0.9f, 0.9f, 0.9f))
 	{
-		printf("mid coordinates: (%d, %d, %d) @%d\n", loc_x, loc_y, loc_z, id);
+		//printf("mid coordinates: (%f, %f, %f) @%d\n", loc_x, loc_y, loc_z, id);
 		calcMid(data, outData);
-		return;
 	}
-	if (doesIntersect(bot_aMinX, bot_aMinY, bot_aMinZ, bot_aMaxX, bot_aMaxY, bot_aMaxZ, loc_x, loc_y, loc_z, 2, 2, 2))
+	if (doesIntersect(bot_aMinX, bot_aMinY, bot_aMinZ, bot_aMaxX, bot_aMaxY, bot_aMaxZ, loc_x, loc_y, loc_z, 0.9f, 0.9f, 0.9f))
 	{
-		printf("bot coordinates: (%d, %d, %d) @%d\n", loc_x, loc_y, loc_z, id);
+		//printf("bot coordinates: (%f, %f, %f) @%d\n", loc_x, loc_y, loc_z, id);
 		calcBot(data, outData);
-		return;
 	}
 
 	// something went wrong error

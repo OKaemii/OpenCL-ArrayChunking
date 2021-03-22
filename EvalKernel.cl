@@ -31,6 +31,7 @@ global range: (halo * 2)*_HEIGHT*_DEPTH
 void init_inflow_plane(float* data, int x, int y, int z, int _WIDTH, int _HEIGHT, int _DEPTH, int halo)
 {
 	// data[F3D2C(_WIDTH + (halo * 2), _HEIGHT + (halo * 2), 0, 0, 0, x, y, z)] = (z - halo) / _DEPTH;
+	// data[(l, h, d, 0, 0, x, y, z)] = (z - halo) / _DEPTH;
 	data[get_global_id(0)] = (z - halo) / _DEPTH;
 }
 
@@ -155,7 +156,12 @@ void calc_new_core_values(float* data, float* out_data)
 }
 
 
-__kernel void super(__global float* data, __global float* outData, int max_x, int max_y, int x_offset, int y_offset, int z_offset, int _WIDTH, int _DEPTH, int _HEIGHT)
+__kernel void super(__global float* data, __global float* outData, int STATE, int max_x, int max_y, int x_offset, int y_offset, int z_offset, int _WIDTH, int _DEPTH, int _HEIGHT)
 {
+	// INIT stage part of array
+	if (STATE == 0)
+	{
+
+	}
 
 }
