@@ -14,7 +14,7 @@ public:
 	* default constructor for OpenCL initialisation 
 	* platform, and device are automatically chosen
 	*/
-	OCL(int width=29, int height=29, int depth=29);
+	OCL(int width=29, int height=29, int depth=29, int halo = 1);
 
 	/*
 	* default constructor's destructor
@@ -30,16 +30,16 @@ public:
 	/*
 	* the bread and butter
 	*/
-	void run(int chunkSlice_x=2, int chunkSlice_y=2, int chunkSlice_z=2, int halo=1);
+	void run(int chunkSlice_x=2, int chunkSlice_y=2, int chunkSlice_z=2);
 
 	// function to return our error info
 	bool checkErr(cl_int err, const char* name);
 
 	// entire array body to work with
-	std::vector<float> arrMainBody;
+	float *arrMainBody;
 
 	// entire haloed array body to work with
-	std::vector<float> haloed_arrMainBody;
+	float *haloed_arrMainBody;
 
 	struct data_struct
 	{
@@ -47,6 +47,8 @@ public:
 		int _WIDTH;
 		int _HEIGHT;
 		int _DEPTH;
+		int _HALO;
+		int _STATE;
 	} dataToUse;
 
 private:

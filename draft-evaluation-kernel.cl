@@ -41,7 +41,7 @@ void init_domain(float* p) {
 
 /* Calculate the outflow values */
 /* Iteration (Fortran convention)
-i: no iteration, p(ip+1,j,k)=p(ip,j,k) // pressure at ip+1 same as ip
+i: no iteration, p(ip+1,j,k)=p(ip,j,k) // pressure at ip+1 same as ip 
 j: 1,jp
 k: 1,kp
 global range: jp*kp

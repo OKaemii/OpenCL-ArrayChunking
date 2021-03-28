@@ -12,7 +12,7 @@ bool OCL::checkErr(cl_int err, const char* name)
 	return false;
 }
 
-OCL::OCL(int width, int height, int depth)
+OCL::OCL(int width, int height, int depth, int halo)
 {
 	printf("OpenCL 1.2 Object.\n");
 	// create platform to accommodate for devices
@@ -23,6 +23,7 @@ OCL::OCL(int width, int height, int depth)
 	dataToUse._WIDTH  = width;
 	dataToUse._HEIGHT = height;
 	dataToUse._DEPTH  = depth;
+	dataToUse._HALO   = halo;
 
 	// list platforms
 	{
@@ -54,6 +55,8 @@ OCL::~OCL()
 	// should probs do something
 	// but cl.h seems to have something for it already?
 	// another time perhaps
+	free(arrMainBody);
+	free(haloed_arrMainBody);
 }
 
 void OCL::init(int platform_id, int device_id)
@@ -97,9 +100,11 @@ void OCL::init(int platform_id, int device_id)
 
 
 	printf("initialising...\n");
+	// init state for kernel
+	dataToUse._STATE = -1;
 
 	// read in kernel file as source
-	std::ifstream kernelFile("ProcArray.cl");
+	std::ifstream kernelFile("EvalKernel.cl");
 	std::string src(std::istreambuf_iterator<char>(kernelFile), (std::istreambuf_iterator<char>()));
 	const cl::Program::Sources sources(1, std::make_pair(src.c_str(), src.size() + 1));
 
@@ -117,69 +122,115 @@ void OCL::init(int platform_id, int device_id)
 	std::cout << "Build Options:\t " << oclBode.program.getBuildInfo<CL_PROGRAM_BUILD_OPTIONS>(devices[device_id]) << std::endl;
 	std::cout << "Build Log:\t " << oclBode.program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(devices[device_id]) << std::endl;
 
-	cl::Kernel kernel(program, "doofus", &err);
+	cl::Kernel kernel(program, "super", &err);
 	checkErr(err, "kernelling...");
 	oclBode.kernel = kernel;
-}
 
-void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z, int halo)
-{
-	OCL::arrMainBody.resize(dataToUse._WIDTH * dataToUse._HEIGHT * dataToUse._DEPTH);
+	printf("Building array...\n");
 
-	// fill array main body
-	std::fill(arrMainBody.begin(), arrMainBody.end(), 1.f); // method 1
+	int arrMainBodySize = dataToUse._WIDTH * dataToUse._HEIGHT * dataToUse._DEPTH;
+	OCL::arrMainBody = (float*)malloc(sizeof(float) * arrMainBodySize);
+
+	// init_domain
+	// std::fill(arrMainBody[0], arrMainBody[arrMainBodySize-1], 1.f); // method 1
 	// std::iota(std::begin(vec), std::end(vec), 0.f);	// method 2
-
+	for (int i = 0; i < arrMainBodySize; i++)
+	{
+		arrMainBody[i] = 0;
+	}
+	//for (int i = 0; i < arrMainBodySize; i++)
+	//{
+	//	arrMainBody[i] = 1.f;
+	//}
 
 	// halo defined from parameter
+	int halo = dataToUse._HALO;
 	int halo_size = halo * 2;
 
 	// new vector to have original vec with halo
-	OCL::haloed_arrMainBody.resize((dataToUse._WIDTH + halo_size) * (dataToUse._HEIGHT + halo_size) * (dataToUse._DEPTH + halo_size));
+	int haloed_arrMainBodySize = (dataToUse._WIDTH + halo_size) * (dataToUse._HEIGHT + halo_size) * (dataToUse._DEPTH + halo_size);
+	OCL::haloed_arrMainBody = (float*)malloc(sizeof(float) * haloed_arrMainBodySize);
+	for (int i = 0; i < haloed_arrMainBodySize; i++)
+	{
+		haloed_arrMainBody[i] = 0;
+	}
 
 	// new dimensions with haloes
 	int haloed_width = (dataToUse._WIDTH + halo_size);
 	int haloed_height = (dataToUse._HEIGHT + halo_size);
 	int haloed_depth = (dataToUse._DEPTH + halo_size);
 
-	// index to map haloed vector with main array
-	int original_index = 0;
+	// index to map haloed vector
+	int haloed_arr_id = 0;
 
 	// contain main array into haloed vector to give it haloes
-	for (int z = halo; z < haloed_depth - halo; z++)
+	for (int z = halo; z < haloed_depth; z++)
 	{
-		for (int y = halo; y < haloed_height - halo; y++)
+		for (int y = halo; y < haloed_height; y++)
 		{
-			for (int x = halo; x < haloed_width - halo; x++)
+			for (int x = halo; x < haloed_width; x++)
 			{
-				// get the appropriate mapping for haloed vec, and main vec
-				int index = x + haloed_width * (y + haloed_height * z);
-				haloed_arrMainBody[index] = arrMainBody[original_index];
-				original_index++;
+				// init_inflow_plane
+				if ((x>=0 && x<halo) && (y>=halo && y<dataToUse._HEIGHT) && (z>=halo && z<dataToUse._DEPTH))
+				{
+					// haloed_arrMainBody[haloed_arr_id] = (z - halo) / dataToUse._DEPTH;
+					haloed_arrMainBody[haloed_arr_id] = 1.f;
+				}
+				// init_outflow_plane
+				if ((x >= halo && x < halo+1) && (y >= halo && y < dataToUse._HEIGHT) && (z >= halo && z <= dataToUse._DEPTH))
+				{
+					//int from_index = (x + 1) + dataToUse._WIDTH * (y + dataToUse._HEIGHT * z);
+					//haloed_arrMainBody[haloed_arr_id] = haloed_arrMainBody[from_index];
+					haloed_arrMainBody[haloed_arr_id] = 1.f;
+				}
+				// init_sideflow_halos
+				if ((x >= halo && x < dataToUse._WIDTH) && (y >= 0 && y < halo) && (z >= halo && z < dataToUse._DEPTH))
+				{
+					//int from_index = (x) + dataToUse._WIDTH * ((dataToUse._HEIGHT) + dataToUse._HEIGHT * z);
+					//haloed_arrMainBody[haloed_arr_id] = haloed_arrMainBody[from_index];
+					haloed_arrMainBody[haloed_arr_id] = 1.f;
+				}
+				if ((x >= halo && x < dataToUse._WIDTH) && (y >= dataToUse._HEIGHT+halo) && (z >= halo && z < dataToUse._DEPTH))
+				{
+					//int from_index = (x)+dataToUse._WIDTH * ((1) + dataToUse._HEIGHT * z);
+					//haloed_arrMainBody[haloed_arr_id] = haloed_arrMainBody[from_index];
+					haloed_arrMainBody[haloed_arr_id] = 1.f;
+				}
+				// init_top_bottom_halos
+				if ((x >= halo && x < dataToUse._WIDTH) && (y >= halo && y < dataToUse._HEIGHT) && (z >= 0 && z < halo))
+				{
+					//int from_index = (x)+dataToUse._WIDTH * ((y) + dataToUse._HEIGHT * (halo));
+					//haloed_arrMainBody[haloed_arr_id] = haloed_arrMainBody[from_index];
+					haloed_arrMainBody[haloed_arr_id] = 1.f;
+				}
+				if ((x >= halo && x < dataToUse._WIDTH) && (y >= halo && y < dataToUse._HEIGHT) && (z >= dataToUse._DEPTH + halo))
+				{
+					//int from_index = (x)+dataToUse._WIDTH * ((y) + dataToUse._HEIGHT * (dataToUse._DEPTH + halo));
+					//haloed_arrMainBody[haloed_arr_id] = haloed_arrMainBody[from_index];
+					haloed_arrMainBody[haloed_arr_id] = 1.f;
+				}
+				haloed_arr_id++;
+				continue;
 			}
 		}
 	}
+}
 
-	//// chunk main array not haloed, to give us cords for where starting haloed chunks will start
-	//int x_chunk = dataToUse._WIDTH;
-	//int y_chunk = dataToUse._HEIGHT;
-	//int z_chunk = dataToUse._DEPTH;
-
-	//// make sure all these chunks to be are whole numbers only, if not, do not chunk
-	//if ((dataToUse._WIDTH % chunkSlice_x == 0) && (dataToUse._HEIGHT % chunkSlice_y == 0) && (dataToUse._DEPTH % chunkSlice_z == 0))
-	//{
-	//	x_chunk = dataToUse._WIDTH / chunkSlice_x;
-	//	y_chunk = dataToUse._HEIGHT / chunkSlice_y;
-	//	z_chunk = dataToUse._DEPTH / chunkSlice_z;
-
-	//	chunkSlice_x = chunkSlice_y = chunkSlice_z = 1;
-	//}
+void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z)
+{
+	int halo = dataToUse._HALO;
+	// halo defined from parameter
+	int halo_size = dataToUse._HALO * 2;
+	// new dimensions with haloes
+	int haloed_width = (dataToUse._WIDTH + halo_size);
+	int haloed_height = (dataToUse._HEIGHT + halo_size);
+	int haloed_depth = (dataToUse._DEPTH + halo_size);
 
 	int x_chunk = dataToUse._WIDTH / chunkSlice_x;
 	int y_chunk = dataToUse._HEIGHT / chunkSlice_y;
 	int z_chunk = dataToUse._DEPTH / chunkSlice_z;
 
-	printf("using %d chunks | chunk dim: (%d, %d, %d)\n",(chunkSlice_x* chunkSlice_y* chunkSlice_z), x_chunk, y_chunk, z_chunk);
+	printf("using %d chunks | chunk dim: (%d, %d, %d)\n",(chunkSlice_x* chunkSlice_y* chunkSlice_z), x_chunk+halo, y_chunk+halo, z_chunk+halo);
 
 	// dimensions for chunked array
 	int x_chunk_haloed = x_chunk + halo_size;
@@ -194,7 +245,8 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z, int halo)
 			for (int x_offset = 0; x_offset < dataToUse._WIDTH; x_offset += x_chunk)
 			{
 				// chunk main body array to send for device + haloed
-				std::vector<float> chunkedBody(x_chunk_haloed * y_chunk_haloed * z_chunk_haloed);
+				int chunkedBodySize = x_chunk_haloed * y_chunk_haloed * z_chunk_haloed;
+				float *chunkedBody = (float*) malloc(sizeof(float) * chunkedBodySize);
 
 				// host side index of our chunk
 				int host_index = 0;
@@ -218,15 +270,16 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z, int halo)
 				}
 				
 				// sending to device...
-				int sizeofDataToPass = chunkedBody.size();
-				int sizeofDataToPassinBytes = chunkedBody.size() * sizeof(float);
+				int sizeofDataToPass = chunkedBodySize;
+				int sizeofDataToPassinBytes = chunkedBodySize * sizeof(float);
 
 				// buffer to receive array from device
-				std::vector<float> backBuff(chunkedBody.size());
+				float *backBuff = (float*) malloc(sizeofDataToPassinBytes);
 
 				// map chunked array from host to the array for device
 				// create buffers, and kernel
-				cl::Buffer inBuf(oclBode.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, sizeofDataToPassinBytes, &chunkedBody[0]);
+				//																			 CL_MEM_COPY_HOST_PTR
+				cl::Buffer inBuf(oclBode.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, sizeofDataToPassinBytes, chunkedBody);
 				cl::Buffer outBuf(oclBode.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, sizeofDataToPassinBytes, nullptr);
 
 				// fill in args of the user made kernel func in .cl
@@ -247,8 +300,11 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z, int halo)
 				oclBode.kernel.setArg(8, haloed_height);
 				oclBode.kernel.setArg(9, haloed_depth);
 
+				// is it an init?
+				oclBode.kernel.setArg(10, dataToUse._HALO);
+				oclBode.kernel.setArg(11, dataToUse._STATE);
+
 				cl::Event event;
-				cl_int status;
 
 				// sets up where we to read the finished GPU data
 				// cl::NDRange(sizeofDataToPass), not in bytes, defined in terms of every element and not bytes.
@@ -261,10 +317,19 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z, int halo)
 				// reads from GPU data from where it was set to based on NDRangeK
 				// get data from device, and work on buffer
 				// CL_TRUE block until everything is done
-				err = oclBode.queue.enqueueReadBuffer(outBuf, CL_TRUE, 0, sizeofDataToPassinBytes, &backBuff[0]);
+				err = oclBode.queue.enqueueReadBuffer(outBuf, CL_TRUE, 0, sizeofDataToPassinBytes, backBuff);
+				
+				// no longer need chunkedbody
+				// free chunked body from its suffgering
+				free(chunkedBody);
+
 				checkErr(err, "Reading buffer...");
 
 				// map result from device back to host side main haloed body
+				if (dataToUse._STATE == -1) // are we doing init_domain?
+				{
+					halo = 0;
+				}
 				for (int z = halo; z < z_chunk_haloed - halo; z++)
 				{
 					for (int y = halo; y < y_chunk_haloed - halo; y++)
@@ -282,6 +347,15 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z, int halo)
 					}
 				}
 
+				// future work
+				// current done naively, done point by point
+				// we know in general problem not continguos
+				// large chunks large contiguous sub parts, could do block copies
+				// no longer need buffer
+				// direct mem access (DMA), thus faster
+
+				// if memcopy no work, could use void pointers and then cast it back to float
+				free(backBuff);
 			}
 		}
 
@@ -291,19 +365,22 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z, int halo)
 	// end cl use
 	cl::finish();
 
-	//// output array in sliced fasion
-	//for (int z = 0; z < haloed_depth; z++)
-	//{
-	//	for (int y = 0; y < haloed_height; y++)
-	//	{
-	//		for (int x = 0; x < haloed_width; x++)
-	//		{
-	//			int index = x + haloed_width * (y + haloed_height * z);
-	//			printf(" %.2f ", haloed_arrMainBody[index]);
-	//			index++;
-	//		}
-	//		printf("\n");
-	//	}
-	//	printf("\n");
-	//}
+	// move to next stage henceforth
+	dataToUse._STATE = 0;
+
+	// output array in sliced fasion
+	for (int z = 0; z < haloed_depth; z++)
+	{
+		for (int y = 0; y < haloed_height; y++)
+		{
+			for (int x = 0; x < haloed_width; x++)
+			{
+				int index = x + haloed_width * (y + haloed_height * z);
+				printf(" %.2f ", haloed_arrMainBody[index]);
+				index++;
+			}
+			printf("\n");
+		}
+		printf("\n");
+	}
 }
