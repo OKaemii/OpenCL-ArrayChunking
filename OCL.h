@@ -14,7 +14,7 @@ public:
 	* default constructor for OpenCL initialisation 
 	* platform, and device are automatically chosen
 	*/
-	OCL(int width=29, int height=29, int depth=29, int halo = 0);
+	OCL(int width=29, int height=29, int depth=29, int halo = 0, bool verbose = true);
 
 	/*
 	* default constructor's destructor
@@ -25,7 +25,7 @@ public:
 	/*
 	* initialise data for kernel
 	*/
-	void init(int platform_id = 0, int device_id = 0);
+	void init(int platform_id = 0, int device_id = 0, bool verbose = true);
 
 	/*
 	* the bread and butter
@@ -49,6 +49,7 @@ public:
 		int _DEPTH;
 		int _HALO;
 		int _STATE;
+		long long _GPUTIME;
 	} dataToUse;
 
 private:

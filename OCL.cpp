@@ -1,5 +1,6 @@
 #include "OCL.h"
 #include <omp.h>
+#include <chrono>
 
 bool OCL::checkErr(cl_int err, const char* name)
 {
@@ -7,48 +8,52 @@ bool OCL::checkErr(cl_int err, const char* name)
 	{
 		printf("%s\n", name);
 		std::cerr << "ERROR: " << name << " (" << err << ")" << std::endl;
+		exit(-1);
 		return true;
 	}
 
 	return false;
 }
 
-OCL::OCL(int width, int height, int depth, int halo)
+OCL::OCL(int width, int height, int depth, int halo, bool verbose)
 {
-	printf("OpenCL 1.2 Object.\n");
-	// create platform to accommodate for devices
-	err = cl::Platform::get(&platforms);
-	checkErr(err, "trouble with acquring platform data. :(");
-
 	// struct to contain dimension of main array
 	dataToUse._WIDTH = width;
 	dataToUse._HEIGHT = height;
 	dataToUse._DEPTH = depth;
 	dataToUse._HALO = halo;
 
-	// list platforms
+	if (verbose)
 	{
-		int i = 0;
-		for (auto& p : platforms)
+		printf("OpenCL 1.2 Object.\n");
+		// create platform to accommodate for devices
+		err = cl::Platform::get(&platforms);
+		checkErr(err, "trouble with acquring platform data. :(");
+		// list platforms
 		{
-			printf("platform[%d]: %s\n", i, p.getInfo<CL_PLATFORM_NAME>().c_str());
-			i++;
-
-			auto err = p.getDevices(CL_DEVICE_TYPE_GPU, &devices);
-
-			// list devices for each platform
-			checkErr(err, "Error: Device probably unsupported by OpenCl.");
+			int i = 0;
+			for (auto& p : platforms)
 			{
-				int j = 0;
-				for (auto& d : devices)
+				printf("platform[%d]: %s\n", i, p.getInfo<CL_PLATFORM_NAME>().c_str());
+				i++;
+
+				auto err = p.getDevices(CL_DEVICE_TYPE_GPU, &devices);
+
+				// list devices for each platform
+				checkErr(err, "Error: Device probably unsupported by OpenCl.");
 				{
-					printf("\t- devices[%d]: %s\n", j, d.getInfo<CL_DEVICE_NAME>().c_str());
-					j++;
+					int j = 0;
+					for (auto& d : devices)
+					{
+						printf("\t- devices[%d]: %s\n", j, d.getInfo<CL_DEVICE_NAME>().c_str());
+						j++;
+					}
 				}
 			}
-		}
 
+		}
 	}
+
 }
 
 OCL::~OCL()
@@ -60,7 +65,7 @@ OCL::~OCL()
 	free(haloed_arrMainBody);
 }
 
-void OCL::init(int platform_id, int device_id)
+void OCL::init(int platform_id, int device_id, bool verbose)
 {
 	printf("\n\n");
 
@@ -72,7 +77,8 @@ void OCL::init(int platform_id, int device_id)
 	oclBode.platform = platform;
 
 	// print the device selected
-	printf("using platform: %s\n", platform.getInfo<CL_PLATFORM_NAME>().c_str());
+	if (verbose)
+		printf("using platform: %s\n", platform.getInfo<CL_PLATFORM_NAME>().c_str());
 
 	// get GPU devices; could also CPU with CL_DEVICE_TYPE_CPU
 	auto err = platform.getDevices(CL_DEVICE_TYPE_GPU, &devices);
@@ -82,7 +88,8 @@ void OCL::init(int platform_id, int device_id)
 	oclBode.device = device;
 
 	// print the device selected
-	printf("using device: %s\n", device.getInfo<CL_DEVICE_NAME>().c_str());
+	if (verbose)
+		printf("using device: %s\n", device.getInfo<CL_DEVICE_NAME>().c_str());
 
 	// create context from device
 	cl::Context context = cl::Context(device);
@@ -99,8 +106,8 @@ void OCL::init(int platform_id, int device_id)
 		checkErr(err, "error occured at command queue");
 	}
 
-
-	printf("initialising...\n");
+	if (verbose)
+		printf("initialising...\n");
 
 	// read in kernel file as source
 	std::ifstream kernelFile("EvalKernel.cl");
@@ -115,17 +122,21 @@ void OCL::init(int platform_id, int device_id)
 	oclBode.program = program;
 
 	// new and improved build errors
+
 	printf("%s\n", oclBode.program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device).c_str());
 
+	if (verbose)
+	{
 	std::cout << "Build Status:\t " << oclBode.program.getBuildInfo<CL_PROGRAM_BUILD_STATUS>(devices[device_id]) << std::endl;
 	std::cout << "Build Options:\t " << oclBode.program.getBuildInfo<CL_PROGRAM_BUILD_OPTIONS>(devices[device_id]) << std::endl;
 	std::cout << "Build Log:\t " << oclBode.program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(devices[device_id]) << std::endl;
+	}
 
 	cl::Kernel kernel(program, "super", &err);
 	checkErr(err, "kernelling...");
 	oclBode.kernel = kernel;
-
-	printf("Building array...\n");
+	if (verbose)
+		printf("Building array...\n");
 
 	//int arrMainBodySize = dataToUse._WIDTH * dataToUse._HEIGHT * dataToUse._DEPTH;
 	//OCL::arrMainBody = (float*)malloc(sizeof(float) * arrMainBodySize);
@@ -175,7 +186,7 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z)
 	// printf("validation(%d-%d-%d)==(0,0,0)\n", dataToUse._WIDTH % x_chunk, dataToUse._HEIGHT % y_chunk, dataToUse._DEPTH % z_chunk);
 
 	// contain main array into haloed vector to give it haloes
-	#pragma omp parallel for num_threads(32) collapse(3)
+#pragma omp parallel for num_threads(32) collapse(3)
 	for (int z = 0; z < haloed_depth; z++)
 	{
 		for (int y = 0; y < haloed_height; y++)
@@ -194,7 +205,7 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z)
 				// init_inflow_plane and init_outflow_plane
 				if ((x >= 0 && x < halo) && (y >= halo && y < dataToUse._HEIGHT) && (z >= halo && z < dataToUse._DEPTH))
 				{
-					haloed_arrMainBody[haloed_arr_id] = (float) (z - halo) / dataToUse._DEPTH;
+					haloed_arrMainBody[haloed_arr_id] = (float)(z - halo) / dataToUse._DEPTH;
 
 					// outflow
 					int from_index = (x + 1) + dataToUse._WIDTH * (y + dataToUse._HEIGHT * z);
@@ -248,7 +259,7 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z)
 				float* chunkedBody = (float*)malloc(sizeof(float) * chunkedBodySize);
 
 				// populate chunk with data + haloes
-				#pragma omp parallel for num_threads(32) collapse(3)
+#pragma omp parallel for num_threads(32) collapse(3)
 				for (int z = 0; z < z_chunk_haloed; z++)
 				{
 					for (int y = 0; y < y_chunk_haloed; y++)
@@ -267,6 +278,8 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z)
 						}
 					}
 				}
+
+				auto startTime = std::chrono::high_resolution_clock::now();
 
 				// sending to device...
 				int sizeofDataToPass = chunkedBodySize;
@@ -315,13 +328,18 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z)
 				// CL_TRUE block until everything is done
 				err = oclBode.queue.enqueueReadBuffer(outBuf, CL_TRUE, 0, chunkedBodySize * sizeof(float), backBuff);
 
+				auto endTime = std::chrono::high_resolution_clock::now();
+				auto elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+				
+				dataToUse._GPUTIME = elapsedTime;
+
 				// no longer need chunkedbody
 				// free chunked body from its suffgering
 				free(chunkedBody);
 
 				checkErr(err, "Reading buffer...");
 
-				#pragma omp parallel for num_threads(32) collapse(3)
+#pragma omp parallel for num_threads(32) collapse(3)
 				for (int z = halo; z < z_chunk_haloed - halo; z++)
 				{
 					for (int y = halo; y < y_chunk_haloed - halo; y++)
