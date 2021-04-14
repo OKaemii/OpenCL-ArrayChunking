@@ -1,4 +1,5 @@
 #include "OCL.h"
+#include <omp.h>
 
 bool OCL::checkErr(cl_int err, const char* name)
 {
@@ -20,10 +21,10 @@ OCL::OCL(int width, int height, int depth, int halo)
 	checkErr(err, "trouble with acquring platform data. :(");
 
 	// struct to contain dimension of main array
-	dataToUse._WIDTH  = width;
+	dataToUse._WIDTH = width;
 	dataToUse._HEIGHT = height;
-	dataToUse._DEPTH  = depth;
-	dataToUse._HALO   = halo;
+	dataToUse._DEPTH = depth;
+	dataToUse._HALO = halo;
 
 	// list platforms
 	{
@@ -55,7 +56,7 @@ OCL::~OCL()
 	// should probs do something
 	// but cl.h seems to have something for it already?
 	// another time perhaps
-	free(arrMainBody);
+	// free(arrMainBody);
 	free(haloed_arrMainBody);
 }
 
@@ -100,8 +101,6 @@ void OCL::init(int platform_id, int device_id)
 
 
 	printf("initialising...\n");
-	// init state for kernel
-	dataToUse._STATE = -1;
 
 	// read in kernel file as source
 	std::ifstream kernelFile("EvalKernel.cl");
@@ -128,16 +127,16 @@ void OCL::init(int platform_id, int device_id)
 
 	printf("Building array...\n");
 
-	int arrMainBodySize = dataToUse._WIDTH * dataToUse._HEIGHT * dataToUse._DEPTH;
-	OCL::arrMainBody = (float*)malloc(sizeof(float) * arrMainBodySize);
+	//int arrMainBodySize = dataToUse._WIDTH * dataToUse._HEIGHT * dataToUse._DEPTH;
+	//OCL::arrMainBody = (float*)malloc(sizeof(float) * arrMainBodySize);
 
-	// init_domain
-	// std::fill(arrMainBody[0], arrMainBody[arrMainBodySize-1], 1.f); // method 1
-	// std::iota(std::begin(vec), std::end(vec), 0.f);	// method 2
-	for (int i = 0; i < arrMainBodySize; i++)
-	{
-		arrMainBody[i] = 0;
-	}
+	//// init_domain
+	//// std::fill(arrMainBody[0], arrMainBody[arrMainBodySize-1], 1.f); // method 1
+	//// std::iota(std::begin(vec), std::end(vec), 0.f);	// method 2
+	//for (int i = 0; i < arrMainBodySize; i++)
+	//{
+	//	arrMainBody[i] = 0;
+	//}
 	//for (int i = 0; i < arrMainBodySize; i++)
 	//{
 	//	arrMainBody[i] = 1.f;
@@ -148,72 +147,14 @@ void OCL::init(int platform_id, int device_id)
 	int halo_size = halo * 2;
 
 	// new vector to have original vec with halo
-	int haloed_arrMainBodySize = (dataToUse._WIDTH + halo_size) * (dataToUse._HEIGHT + halo_size) * (dataToUse._DEPTH + halo_size);
+	long haloed_arrMainBodySize = (dataToUse._WIDTH + halo_size) * (dataToUse._HEIGHT + halo_size) * (dataToUse._DEPTH + halo_size);
 	OCL::haloed_arrMainBody = (float*)malloc(sizeof(float) * haloed_arrMainBodySize);
-	for (int i = 0; i < haloed_arrMainBodySize; i++)
-	{
-		haloed_arrMainBody[i] = 0;
-	}
+	memset(haloed_arrMainBody, 0, haloed_arrMainBodySize * sizeof(float));
 
-	// new dimensions with haloes
-	int haloed_width = (dataToUse._WIDTH + halo_size);
-	int haloed_height = (dataToUse._HEIGHT + halo_size);
-	int haloed_depth = (dataToUse._DEPTH + halo_size);
-
-	// index to map haloed vector
-	int haloed_arr_id = 0;
-
-	// contain main array into haloed vector to give it haloes
-	for (int z = halo; z < haloed_depth; z++)
-	{
-		for (int y = halo; y < haloed_height; y++)
-		{
-			for (int x = halo; x < haloed_width; x++)
-			{
-				// init_inflow_plane
-				if ((x>=0 && x<halo) && (y>=halo && y<dataToUse._HEIGHT) && (z>=halo && z<dataToUse._DEPTH))
-				{
-					// haloed_arrMainBody[haloed_arr_id] = (z - halo) / dataToUse._DEPTH;
-					haloed_arrMainBody[haloed_arr_id] = 1.f;
-				}
-				// init_outflow_plane
-				if ((x >= halo && x < halo+1) && (y >= halo && y < dataToUse._HEIGHT) && (z >= halo && z <= dataToUse._DEPTH))
-				{
-					//int from_index = (x + 1) + dataToUse._WIDTH * (y + dataToUse._HEIGHT * z);
-					//haloed_arrMainBody[haloed_arr_id] = haloed_arrMainBody[from_index];
-					haloed_arrMainBody[haloed_arr_id] = 1.f;
-				}
-				// init_sideflow_halos
-				if ((x >= halo && x < dataToUse._WIDTH) && (y >= 0 && y < halo) && (z >= halo && z < dataToUse._DEPTH))
-				{
-					//int from_index = (x) + dataToUse._WIDTH * ((dataToUse._HEIGHT) + dataToUse._HEIGHT * z);
-					//haloed_arrMainBody[haloed_arr_id] = haloed_arrMainBody[from_index];
-					haloed_arrMainBody[haloed_arr_id] = 1.f;
-				}
-				if ((x >= halo && x < dataToUse._WIDTH) && (y >= dataToUse._HEIGHT+halo) && (z >= halo && z < dataToUse._DEPTH))
-				{
-					//int from_index = (x)+dataToUse._WIDTH * ((1) + dataToUse._HEIGHT * z);
-					//haloed_arrMainBody[haloed_arr_id] = haloed_arrMainBody[from_index];
-					haloed_arrMainBody[haloed_arr_id] = 1.f;
-				}
-				// init_top_bottom_halos
-				if ((x >= halo && x < dataToUse._WIDTH) && (y >= halo && y < dataToUse._HEIGHT) && (z >= 0 && z < halo))
-				{
-					//int from_index = (x)+dataToUse._WIDTH * ((y) + dataToUse._HEIGHT * (halo));
-					//haloed_arrMainBody[haloed_arr_id] = haloed_arrMainBody[from_index];
-					haloed_arrMainBody[haloed_arr_id] = 1.f;
-				}
-				if ((x >= halo && x < dataToUse._WIDTH) && (y >= halo && y < dataToUse._HEIGHT) && (z >= dataToUse._DEPTH + halo))
-				{
-					//int from_index = (x)+dataToUse._WIDTH * ((y) + dataToUse._HEIGHT * (dataToUse._DEPTH + halo));
-					//haloed_arrMainBody[haloed_arr_id] = haloed_arrMainBody[from_index];
-					haloed_arrMainBody[haloed_arr_id] = 1.f;
-				}
-				haloed_arr_id++;
-				continue;
-			}
-		}
-	}
+	//// new dimensions with haloes
+	//int haloed_width = (dataToUse._WIDTH + halo_size);
+	//int haloed_height = (dataToUse._HEIGHT + halo_size);
+	//int haloed_depth = (dataToUse._DEPTH + halo_size);
 }
 
 void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z)
@@ -230,7 +171,64 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z)
 	int y_chunk = dataToUse._HEIGHT / chunkSlice_y;
 	int z_chunk = dataToUse._DEPTH / chunkSlice_z;
 
-	printf("using %d chunks | chunk dim: (%d, %d, %d)\n",(chunkSlice_x* chunkSlice_y* chunkSlice_z), x_chunk+halo, y_chunk+halo, z_chunk+halo);
+	// printf("using %d chunks | chunk dim: (%d, %d, %d)\n", (chunkSlice_x * chunkSlice_y * chunkSlice_z), dataToUse._WIDTH / chunkSlice_x + dataToUse._HALO, dataToUse._HEIGHT / chunkSlice_y + dataToUse._HALO, dataToUse._DEPTH / chunkSlice_z + dataToUse._HALO);
+	// printf("validation(%d-%d-%d)==(0,0,0)\n", dataToUse._WIDTH % x_chunk, dataToUse._HEIGHT % y_chunk, dataToUse._DEPTH % z_chunk);
+
+	// contain main array into haloed vector to give it haloes
+	#pragma omp parallel for num_threads(32) collapse(3)
+	for (int z = 0; z < haloed_depth; z++)
+	{
+		for (int y = 0; y < haloed_height; y++)
+		{
+			for (int x = 0; x < haloed_width; x++)
+			{
+				// index to map haloed vector
+				int haloed_arr_id = x + haloed_width * (y + haloed_height * z);
+
+				// domain value
+				if ((x >= halo && x < dataToUse._WIDTH) && (y >= halo && y < dataToUse._HEIGHT) && (z >= halo && z < dataToUse._DEPTH))
+				{
+					haloed_arrMainBody[haloed_arr_id] = 0;
+				}
+
+				// init_inflow_plane and init_outflow_plane
+				if ((x >= 0 && x < halo) && (y >= halo && y < dataToUse._HEIGHT) && (z >= halo && z < dataToUse._DEPTH))
+				{
+					haloed_arrMainBody[haloed_arr_id] = (float) (z - halo) / dataToUse._DEPTH;
+
+					// outflow
+					int from_index = (x + 1) + dataToUse._WIDTH * (y + dataToUse._HEIGHT * z);
+					haloed_arrMainBody[from_index] = haloed_arrMainBody[haloed_arr_id];
+				}
+
+				// init_sideflow_halos
+				if ((x >= halo && x < dataToUse._WIDTH) && (y >= 0 && y < halo) && (z >= halo && z < dataToUse._DEPTH))
+				{
+					int from_index = x + dataToUse._WIDTH * (dataToUse._HEIGHT + dataToUse._HEIGHT * z);
+					haloed_arrMainBody[haloed_arr_id] = haloed_arrMainBody[from_index];
+				}
+
+				if ((x >= halo && x < dataToUse._WIDTH) && (y >= dataToUse._HEIGHT + halo) && (z >= halo && z < dataToUse._DEPTH))
+				{
+					int from_index = x + dataToUse._WIDTH * (halo + dataToUse._HEIGHT * z);
+					haloed_arrMainBody[haloed_arr_id] = haloed_arrMainBody[from_index];
+				}
+
+				// init_top_bottom_halos
+				if ((x >= halo && x < dataToUse._WIDTH) && (y >= halo && y < dataToUse._HEIGHT) && (z >= 0 && z < halo))
+				{
+					int from_index = x + dataToUse._WIDTH * (y + dataToUse._HEIGHT * halo);
+					haloed_arrMainBody[haloed_arr_id] = haloed_arrMainBody[from_index];
+				}
+
+				if ((x >= halo && x < dataToUse._WIDTH) && (y >= halo && y < dataToUse._HEIGHT) && (z >= dataToUse._DEPTH + halo))
+				{
+					int from_index = x + dataToUse._WIDTH * (y + dataToUse._HEIGHT * (dataToUse._DEPTH + halo));
+					haloed_arrMainBody[haloed_arr_id] = haloed_arrMainBody[from_index];
+				}
+			}
+		}
+	}
 
 	// dimensions for chunked array
 	int x_chunk_haloed = x_chunk + halo_size;
@@ -238,20 +236,19 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z)
 	int z_chunk_haloed = z_chunk + halo_size;
 
 	// get the first co-ordinates of every chunk
-	for (int z_offset = 0; z_offset < dataToUse._DEPTH; z_offset += z_chunk)
+	int ddd = dataToUse._WIDTH % x_chunk;
+	for (int z_offset = 0; z_offset + ddd < dataToUse._DEPTH; z_offset += z_chunk)
 	{
-		for (int y_offset = 0; y_offset < dataToUse._HEIGHT; y_offset += y_chunk)
+		for (int y_offset = 0; y_offset + ddd < dataToUse._HEIGHT; y_offset += y_chunk)
 		{
-			for (int x_offset = 0; x_offset < dataToUse._WIDTH; x_offset += x_chunk)
+			for (int x_offset = 0; x_offset + ddd < dataToUse._WIDTH; x_offset += x_chunk)
 			{
 				// chunk main body array to send for device + haloed
 				int chunkedBodySize = x_chunk_haloed * y_chunk_haloed * z_chunk_haloed;
-				float *chunkedBody = (float*) malloc(sizeof(float) * chunkedBodySize);
+				float* chunkedBody = (float*)malloc(sizeof(float) * chunkedBodySize);
 
-				// host side index of our chunk
-				int host_index = 0;
-				
 				// populate chunk with data + haloes
+				#pragma omp parallel for num_threads(32) collapse(3)
 				for (int z = 0; z < z_chunk_haloed; z++)
 				{
 					for (int y = 0; y < y_chunk_haloed; y++)
@@ -260,27 +257,28 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z)
 						{
 							// index of the haloed main body
 							int index = (x + x_offset) + haloed_width * ((y + y_offset) + haloed_height * (z + z_offset));
-							
+
 							// assign from haloed main ved to chunk body
 							// with coordinates where each chunk starts
+							// host side index of our chunk
+							int host_index = x + x_chunk_haloed * (y + y_chunk_haloed * z);
+
 							chunkedBody[host_index] = haloed_arrMainBody[index];
-							host_index++;
 						}
 					}
 				}
-				
+
 				// sending to device...
 				int sizeofDataToPass = chunkedBodySize;
-				int sizeofDataToPassinBytes = chunkedBodySize * sizeof(float);
 
 				// buffer to receive array from device
-				float *backBuff = (float*) malloc(sizeofDataToPassinBytes);
+				float* backBuff = new float[chunkedBodySize * sizeof(float)];
 
 				// map chunked array from host to the array for device
 				// create buffers, and kernel
 				//																			 CL_MEM_COPY_HOST_PTR
-				cl::Buffer inBuf(oclBode.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, sizeofDataToPassinBytes, chunkedBody);
-				cl::Buffer outBuf(oclBode.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, sizeofDataToPassinBytes, nullptr);
+				cl::Buffer inBuf(oclBode.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, chunkedBodySize * sizeof(float), chunkedBody);
+				cl::Buffer outBuf(oclBode.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, chunkedBodySize * sizeof(float), nullptr);
 
 				// fill in args of the user made kernel func in .cl
 				oclBode.kernel.setArg(0, inBuf);
@@ -300,9 +298,7 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z)
 				oclBode.kernel.setArg(8, haloed_height);
 				oclBode.kernel.setArg(9, haloed_depth);
 
-				// is it an init?
 				oclBode.kernel.setArg(10, dataToUse._HALO);
-				oclBode.kernel.setArg(11, dataToUse._STATE);
 
 				cl::Event event;
 
@@ -317,19 +313,15 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z)
 				// reads from GPU data from where it was set to based on NDRangeK
 				// get data from device, and work on buffer
 				// CL_TRUE block until everything is done
-				err = oclBode.queue.enqueueReadBuffer(outBuf, CL_TRUE, 0, sizeofDataToPassinBytes, backBuff);
-				
+				err = oclBode.queue.enqueueReadBuffer(outBuf, CL_TRUE, 0, chunkedBodySize * sizeof(float), backBuff);
+
 				// no longer need chunkedbody
 				// free chunked body from its suffgering
 				free(chunkedBody);
 
 				checkErr(err, "Reading buffer...");
 
-				// map result from device back to host side main haloed body
-				if (dataToUse._STATE == -1) // are we doing init_domain?
-				{
-					halo = 0;
-				}
+				#pragma omp parallel for num_threads(32) collapse(3)
 				for (int z = halo; z < z_chunk_haloed - halo; z++)
 				{
 					for (int y = halo; y < y_chunk_haloed - halo; y++)
@@ -340,7 +332,7 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z)
 							int index = (x + x_offset) + haloed_width * ((y + y_offset) + haloed_height * (z + z_offset));
 
 							// index for the device side chunk
-							int device_index = x + x_chunk_haloed * (y + y_chunk_haloed * x);
+							int device_index = x + x_chunk_haloed * (y + y_chunk_haloed * z);
 
 							haloed_arrMainBody[index] = backBuff[device_index];
 						}
@@ -355,7 +347,7 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z)
 				// direct mem access (DMA), thus faster
 
 				// if memcopy no work, could use void pointers and then cast it back to float
-				free(backBuff);
+				delete[] backBuff;
 			}
 		}
 
@@ -365,22 +357,19 @@ void OCL::run(int chunkSlice_x, int chunkSlice_y, int chunkSlice_z)
 	// end cl use
 	cl::finish();
 
-	// move to next stage henceforth
-	dataToUse._STATE = 0;
-
-	// output array in sliced fasion
-	for (int z = 0; z < haloed_depth; z++)
-	{
-		for (int y = 0; y < haloed_height; y++)
-		{
-			for (int x = 0; x < haloed_width; x++)
-			{
-				int index = x + haloed_width * (y + haloed_height * z);
-				printf(" %.2f ", haloed_arrMainBody[index]);
-				index++;
-			}
-			printf("\n");
-		}
-		printf("\n");
-	}
+	//// output array in sliced fasion
+	//for (int z = 0; z < haloed_depth; z++)
+	//{
+	//	for (int y = 0; y < haloed_height; y++)
+	//	{
+	//		for (int x = 0; x < haloed_width; x++)
+	//		{
+	//			int index = x + haloed_width * (y + haloed_height * z);
+	//			printf(" %.2f ", haloed_arrMainBody[index]);
+	//			index++;
+	//		}
+	//		printf("\n");
+	//	}
+	//	printf("\n");
+	//}
 }

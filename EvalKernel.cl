@@ -105,6 +105,20 @@ global range: _HEIGHT * _DEPTH
 //	data[index2] = data[index3];
 //}
 
+/* Then populate the entire domain with the same values */
+/* Iteration (Fortran convention)
+x: 1,_WIDTH
+y: 1,_HEIGHT
+z: 1,__DEPTH
+
+global range is _WIDTH*_HEIGHT*__DEPTH
+*/
+//void init_domain(__global float* data, __global float* out_data)
+//{
+//	// data[F3D2C(_WIDTH + (halo * 2), _HEIGHT + (halo * 2), 0, 0, 0, x, y, z)] = 0.0;
+//	out_data[get_global_id(0)] = 0.0;
+//}
+
 /* Calculate the new core values */
 /* Iteration (Fortran convention)
 x: 1, _WIDTH
@@ -120,104 +134,36 @@ global range: _WIDTH * _HEIGHT * _DEPTH
 operation: p_new(x,y,z) = (p(x+1,y,z) + p(x-1,y,z) + p(x,y+1,z) + p(x,y-1,z) + p(x,y,z+1) + p(x,y,z-1))/6
 
 */
-void calc_new_core_values(__global float* data, __global float* out_data)
+void calc_new_core_values(__global float* data, __global float* out_data, int x, int y, int z, int max_x, int max_y)
+{
+	int index0 = (x + 1) + max_x * (y + max_y * z);
+	int index1 = (x - 1) + max_x * (y + max_y * z);
+	int index2 = x + max_x * ((y + 1) + max_y * z);
+	int index3 = x + max_x * ((y - 1) + max_y * z);
+	int index4 = x + max_x * (y + max_y * (z + 1));
+	int index5 = x + max_x * (y + max_y * (z - 1));
+
+	out_data[get_global_id(0)] = (data[index0] + data[index1] + data[index2] + data[index3] + data[index4] + data[index5]) / 6;
+}
+
+__kernel void super(__global float* data, __global float* out_data, int max_x, int max_y, int x_offset, int y_offset, int z_offset, int _WIDTH, int _DEPTH, int _HEIGHT, int halo)
 {
 	// co-ordinates of current index
 	// map global array index to local array id
 	int id = get_global_id(0);
 
 	// find index of co-ordinates (x0, y0, z0)
-	int x = (id % max_x) + x_offset;
+	int loc_x = (id % max_x) + x_offset;
 	int loc_index = id / max_x;
-	int y = (loc_index % max_y) + y_offset;
-	int x = (loc_index / max_y) + z_offset;
-
-	int index0 = (x + 1) + max_x * ((y)+max_y * (z));
-	int index1 = (x - 1) + max_x * ((y)+max_y * (z));
-	int index2 = (x)+max_x * ((y + 1) + max_y * (z));
-	int index3 = (x)+max_x * ((y - 1) + max_y * (z));
-	int index4 = (x)+max_x * ((y)+max_y * (z + 1));
-	int index5 = (x)+max_x * ((y)+max_y * (z - 1));
-
-	out_data[id] = (data[index0] + data[index1] + data[index2] + data[index3] + data[index4] + data[index5]) / 6
-}
-
-/* Then populate the entire domain with the same values */
-/* Iteration (Fortran convention)
-x: 1,_WIDTH
-y: 1,_HEIGHT
-z: 1,__DEPTH
-
-global range is _WIDTH*_HEIGHT*__DEPTH
-*/
-void init_domain(__global float* data, __global float* out_data)
-{
-	// data[F3D2C(_WIDTH + (halo * 2), _HEIGHT + (halo * 2), 0, 0, 0, x, y, z)] = 0.0;
-	out_data[get_global_id(0)] = 0.0;
-}
-
-bool doesIntersect(float x0, float y0, float z0, float w0, float h0, float d0, float x1, float y1, float z1, float w1, float h1, float d1)
-{
-	/*
-	* w,h,z: dimensions of object
-	* x,y,z: co-ordinates of object
-	*/
-
-	// Calculate Halves
-	float hw0 = w0 * 0.5;
-	float hh0 = h0 * 0.5;
-	float hd0 = d0 * 0.5;
-
-	float hw1 = w1 * 0.5;
-	float hh1 = h1 * 0.5;
-	float hd1 = d1 * 0.5;
-
-	// Calculate Middle of Boundary
-	float mx = x0 + hw0;
-	float my = y0 + hh0;
-	float mz = z0 + hd0;
-
-	// Calculate Middle of Block
-	float bx = x1 + hw1;
-	float by = y1 + hh1;
-	float bz = z1 + hd1;
-
-	// Intersection test
-	// Calculate Deltas (centre displacement)
-	float dx = fabs(mx - bx);
-	float dy = fabs(my - by);
-	float dz = fabs(mz - bz);
-
-	return (hw0 + hw1) > dx && (hh0 + hh1) > dy && (hd0 + hd1) > dz;
-}
-
-
-__kernel void super(__global float* data, __global float* outData, int max_x, int max_y, int x_offset, int y_offset, int z_offset, int _WIDTH, int _DEPTH, int _HEIGHT, int STATE)
-{
-	float point_size = 0.9f;
-
-	// co-ordinates of current index 
-	// map global array index to local array id
-	int id = get_global_id(0);
-
-	// find index of co-ordinates (x0, y0, z0)
-	float loc_x = (id % max_x) + x_offset;
-	int loc_index = id / max_x;
-	float loc_y = (loc_index % max_y) + y_offset;
-	float loc_z = (loc_index / max_y) + z_offset;
-
+	int loc_y = (loc_index % max_y) + y_offset;
+	int loc_z = (loc_index / max_y) + z_offset;
+	
+	// printf("max_x: %d, max_y: %d, x_offset: %d, y_offset: %d, z_offset: %d\n",max_x, max_y, x_offset, y_offset, z_offset);
 	// (-------------------------BOUNDARY-------------------------)(--------------------------OBJECT--------------------------) 
 	// (float x0, float y0, float z0, float w0, float h0, float d0, float x1, float y1, float z1, float w1, float h1, float d1)
 
-	if (STATE != -1)
+	if ((loc_x >= halo && loc_y >= halo && loc_z >= halo) && (loc_x <= (_WIDTH - halo*2) && loc_y >= (_HEIGHT - halo * 2) && loc_z >= (_DEPTH - halo * 2)))
 	{
-		calc_new_core_values();
-		return;
-	}
-
-	// INIT stage part of arrayT
-	if (doesIntersect(halo, halo, halo, _WIDTH - halo, _HEIGHT - halo, _DEPTH - halo, loc_x, loc_y, loc_z, point_size, point_size, point_size))
-	{
-		init_domain(data, outData);
+		calc_new_core_values(data, out_data, loc_x - x_offset, loc_y - y_offset, loc_z - z_offset, max_x, max_y);
 	}
 }

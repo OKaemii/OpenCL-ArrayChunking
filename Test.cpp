@@ -29,44 +29,30 @@ int main(int argc, char** argv)
 	ocl.init(platform_id, device_id);
 
 	// if j is not a factor of our dim, it will crash :(
-	if ((dim + halo) % j != 0)
+	printf("using %d chunks | chunk dim: (%d, %d, %d)\n", (j * j * j), dim / j + halo, dim / j + halo, dim / j + halo);
+	for (int i = 0; i < 5; i++/*, j *= 2*/)
 	{
-		printf("chunko no %d. :(\n", j);
-		return 0;
+		if ((dim + halo) % j != 0)
+		{
+			printf("chunko no %d. :(\n", j);
+			continue;
+		}
+		auto startTime = std::chrono::high_resolution_clock::now();
+
+		// consider in opencl vhost pointer or copy host pointer
+
+		// execute chunk?
+		ocl.run(j, j, j);
+		ocl.run(j, j, j);
+		ocl.run(j, j, j);
+		ocl.run(j, j, j);
+		ocl.run(j, j, j);
+		ocl.run(j, j, j);
+
+		auto endTime = std::chrono::high_resolution_clock::now();
+		auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
+		std::cout << elapsedTime << ", ";
 	}
-	auto startTime = std::chrono::high_resolution_clock::now();
-
-	// consider in opencl vhost pointer or copy host pointer
-
-	// execute chunk?
-	ocl.run(j, j, j);
-
-	auto endTime = std::chrono::high_resolution_clock::now();
-	auto elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
-
-	std::cout << "chunk_size(" << j << ")| elapsed time: " << elapsedTime << " (ms)" << std::endl;
-
-	//// run chunking algo 3 times with different chunk sizes (j)
-	//for (int i = 0; i < 3; i++, j*=2)
-	//{
-	//	// if j is not a factor of our dim, it will crash :(
-	//	if ((dim+halo) % j != 0)
-	//	{
-	//		printf("chunko no %d. :(\n", j);
-	//		continue;
-	//	}
-	//	auto startTime = std::chrono::high_resolution_clock::now();
-
-	//	// consider in opencl vhost pointer or copy host pointer
-
-	//	// execute chunk?
-	//	ocl.run(j, j, j, halo);
-
-	//	auto endTime = std::chrono::high_resolution_clock::now();
-	//	auto elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
-
-	//	std::cout << "chunk_size(" << j << ")| elapsed time: " << elapsedTime << " (ms)" << std::endl;
-	//}
 
 	return 0;
 }

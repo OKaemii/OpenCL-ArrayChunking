@@ -14,7 +14,7 @@ public:
 	* default constructor for OpenCL initialisation 
 	* platform, and device are automatically chosen
 	*/
-	OCL(int width=29, int height=29, int depth=29, int halo = 1);
+	OCL(int width=29, int height=29, int depth=29, int halo = 0);
 
 	/*
 	* default constructor's destructor
