@@ -1,5 +1,3 @@
-# Readme
-
 This is a Simplified Weather Simulator, based on the LES model.
 It uses OpenCL 1.2, which may be difficult to use, so it is wrapped in a container class: `OCL`.
 
@@ -37,4 +35,36 @@ The project waas build with the command:
 ### Test steps
 
 Press the green button in Visual Studio.
+
+# User manual 
+
+Possible to clone a copy of the latest repository on Github:
+
+```
+git clone https://github.com/OKaemii/OpenCL-ArrayChunking.git
+```
+
+This is a C++ implementation.
+
+Launch the executable in the release folder via the command line.
+
+It is required that you have the necessary kernels in the same directory as the executable.
+
+A scan of your devices will occur.
+
+Select the devices to use to perform simulation testing.
+
+
+# OCL Class
+
+The `OCL` class can be imported using:
+
+```#include OCL.h
+```
+
+The constructor will display a list of devices.
+
+The `init` method allows the selection of such devices, and initialises the domain space.
+
+The `run` method allows the execution of a single forward step into the simulation.
 
